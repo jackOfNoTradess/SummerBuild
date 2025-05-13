@@ -27,8 +27,3 @@ jobs:
     - name: Run tests with Maven
       run: mvn -B test
       
-    - name: Publish Test Report
-      uses: mikepenz/action-junit-report@v3
-      if: always() # Always run even if the previous step fails
-      with:
-        report_paths: 'Backend/**/target/surefire-reports/TEST-*.xml'
