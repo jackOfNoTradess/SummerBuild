@@ -20,7 +20,7 @@ public class AuthControllerTest {
     private MockMvc mvc;
 
     @Test
-    public void healthCheckg() throws Exception {
+    public void healthCheck() throws Exception {
         mvc.perform(MockMvcRequestBuilders
                 .get("/")
                 .accept(MediaType.APPLICATION_JSON))
