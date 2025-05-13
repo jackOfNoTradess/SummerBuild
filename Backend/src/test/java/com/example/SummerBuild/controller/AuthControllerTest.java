@@ -25,6 +25,6 @@ public class AuthControllerTest {
                 .get("/")
                 .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(content().string(equalTo("Welcome to ")));
+                .andExpect(content().string(equalTo("Welcome to SummerBuild")));
     }
 }
