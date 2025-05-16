@@ -1,7 +1,7 @@
 FROM mcr.microsoft.com/devcontainers/base:ubuntu
 
 # Install dependencies
-RUN apt-get update && apt-get install -y \
+RUN sudo apt-get update && apt-get install -y \
     curl \
     unzip \
     gnupg2 \
@@ -10,9 +10,9 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Install OpenJDK 24
-RUN add-apt-repository ppa:openjdk-r/ppa && \
-    apt-get update && \
-    apt-get install -y openjdk-24-jdk
+RUN sudo add-apt-repository ppa:openjdk-r/ppa && \
+    sudo apt-get update && \
+    sudo apt-get install -y openjdk-24-jdk
 
 ENV JAVA_HOME=/usr/lib/jvm/java-24-openjdk-amd64
 ENV PATH="$JAVA_HOME/bin:$PATH"
