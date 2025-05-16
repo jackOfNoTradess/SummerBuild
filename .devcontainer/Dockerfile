@@ -9,10 +9,11 @@ RUN sudo apt-get update && apt-get install -y \
     software-properties-common \
     && rm -rf /var/lib/apt/lists/*
 
-# Install OpenJDK 24
-RUN sudo add-apt-repository ppa:openjdk-r/ppa && \
-    sudo apt-get update && \
-    sudo apt-get install -y openjdk-24-jdk
+# Download and install OpenJDK 24
+RUN mkdir -p /usr/lib/jvm && \
+    curl -fsSL https://download.java.net/java/GA/jdk24/latest/binaries/openjdk-24_linux-x64_bin.tar.gz | \
+    tar -xz -C /usr/lib/jvm && \
+    ln -s /usr/lib/jvm/jdk-24 /usr/lib/jvm/java-24-openjdk-amd64
 
 ENV JAVA_HOME=/usr/lib/jvm/java-24-openjdk-amd64
 ENV PATH="$JAVA_HOME/bin:$PATH"
