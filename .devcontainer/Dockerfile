@@ -9,14 +9,15 @@ RUN sudo apt-get update && apt-get install -y \
     software-properties-common \
     && rm -rf /var/lib/apt/lists/*
 
-# Download and install OpenJDK 24
+# Install OpenJDK 24
 RUN mkdir -p /usr/lib/jvm && \
-    curl -fsSL https://download.java.net/java/GA/jdk24/latest/binaries/openjdk-24_linux-x64_bin.tar.gz | \
+    curl -fsSL https://download.java.net/java/GA/jdk24/24.0.1/binaries/openjdk-24.0.1_linux-x64_bin.tar.gz | \
     tar -xz -C /usr/lib/jvm && \
-    ln -s /usr/lib/jvm/jdk-24 /usr/lib/jvm/java-24-openjdk-amd64
+    ln -s /usr/lib/jvm/jdk-24.0.1 /usr/lib/jvm/java-24-openjdk-amd64
 
 ENV JAVA_HOME=/usr/lib/jvm/java-24-openjdk-amd64
 ENV PATH="$JAVA_HOME/bin:$PATH"
+
 
 # Install Maven
 RUN curl -fsSL https://archive.apache.org/dist/maven/maven-3/3.9.6/binaries/apache-maven-3.9.6-bin.tar.gz | tar -xz -C /opt && \
