@@ -4,6 +4,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    env_file:
+      - path: .env
+        required: false
     volumes:
       - ../..:/workspaces:cached
     ports:

@@ -23,7 +23,7 @@
 		8080
 	],
 	// Use 'postCreateCommand' to run commands after the container is created.
-	"postCreateCommand": "cd Backend && ./mvnw dependency:resolve",
+	"postCreateCommand": "git config --global user.name \"${GIT_USER_NAME}\" && git config --global user.email ${GIT_USER_EMAIL}",
 	// Configure tool-specific properties.
 	"customizations": {
 		"vscode": {
