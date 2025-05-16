@@ -3,6 +3,7 @@
 {
 	"dockerComposeFile": "docker-compose.yml",
 	"service": "devcontainer",
+	"name": "Summer Build",
 	"workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
 	"features": {
 		"ghcr.io/devcontainers/features/docker-in-docker:2": {

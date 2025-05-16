@@ -1,6 +1,6 @@
 version: '3.8'
 services:
-  dev:
+  devcontainer:
     context: .
     dockerfile: Dockerfile
   volumes:

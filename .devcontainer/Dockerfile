@@ -16,4 +16,4 @@ ENV MAVEN_HOME=/opt/maven
 ENV PATH="${MAVEN_HOME}/bin:${PATH}"
 
 # Set working directory
-WORKDIR /workspace
+WORKDIR /workspaces
