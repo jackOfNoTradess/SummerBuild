@@ -1,8 +1,14 @@
 version: '3.8'
 services:
   devcontainer:
-    context: .
-    dockerfile: Dockerfile
-  volumes:
-    - ../..:/workspaces:cached
-  command: sleep infinity
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - path: .env
+        required: false
+    volumes:
+      - ../..:/workspaces:cached
+    ports:
+      - 8080:8080
+    command: sleep infinity

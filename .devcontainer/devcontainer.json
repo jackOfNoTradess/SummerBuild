@@ -8,7 +8,6 @@
 	"features": {
 		"ghcr.io/devcontainers/features/docker-in-docker:2": {
 			"version": "latest",
-			"enableNonRootDocker": "true",
 			"moby": "true"
 		},
 		"ghcr.io/devcontainers-extra/features/supabase-cli:1": {
@@ -17,14 +16,26 @@
 		"ghcr.io/va-h/devcontainers-features/uv:1": {
 			"shellautocompletion": true,
 			"version": "latest"
-		},
-	}
+		}
+	},
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
-	// "forwardPorts": [],
+	"forwardPorts": [
+		8080
+	],
 	// Use 'postCreateCommand' to run commands after the container is created.
-	// "postCreateCommand": "docker --version",
+	// "postCreateCommand": "git config --global user.name \"${GIT_USER_NAME}\" && git config --global user.email ${GIT_USER_EMAIL}",
 	// Configure tool-specific properties.
-	// "customizations": {},
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"vscjava.vscode-java-pack",
+				"vmware.vscode-spring-boot",
+				"vscjava.vscode-spring-boot-dashboard",
+				"redhat.vscode-xml",
+				"ms-azuretools.vscode-docker"
+			]
+		}
+	},
 	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
-	// "remoteUser": "root"
+	"remoteUser": "root"
 }
