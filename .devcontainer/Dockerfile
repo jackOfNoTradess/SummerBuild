@@ -13,8 +13,7 @@ RUN sudo apt-get update && apt-get install -y \
 RUN mkdir -p /usr/lib/jvm && \
     curl -fsSL https://download.oracle.com/java/24/latest/jdk-24_linux-x64_bin.tar.gz | \
     tar -xz -C /usr/lib/jvm && \
-    ln -sf $(find /usr/lib/jvm -maxdepth 1 -name "jdk-24*" -type d | head -n 1) /usr/lib/jvm/java-24-openjdk-amd64
-
+    ln -s /usr/lib/jvm/jdk-24.0.1 /usr/lib/jvm/java-24-openjdk-amd64 
 
 ENV JAVA_HOME=/usr/lib/jvm/java-24-openjdk-amd64
 ENV PATH="$JAVA_HOME/bin:$PATH"
