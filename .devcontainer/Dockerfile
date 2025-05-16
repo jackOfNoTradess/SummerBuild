@@ -15,9 +15,15 @@ RUN mkdir -p /usr/lib/jvm && \
     tar -xz -C /usr/lib/jvm && \
     ln -s /usr/lib/jvm/jdk-24 /usr/lib/jvm/java-24-openjdk-amd64 
 
+RUN actual_jdk_dir=$(find /usr/lib/jvm -maxdepth 1 -name "jdk-*" -type d | head -n 1) && \
+    ln -sf "$actual_jdk_dir" /usr/lib/jvm/java-24-openjdk-amd64
+
+# Add this to your .bashrc to ensure it's always available
+RUN echo 'export JAVA_HOME=/usr/lib/jvm/java-24-openjdk-amd64' >> /etc/bash.bashrc && \
+    echo 'export PATH=$JAVA_HOME/bin:$PATH' >> /etc/bash.bashrc
+
 ENV JAVA_HOME=/usr/lib/jvm/java-24-openjdk-amd64
 ENV PATH="$JAVA_HOME/bin:$PATH"
-
 
 # Install Maven
 RUN curl -fsSL https://archive.apache.org/dist/maven/maven-3/3.9.6/binaries/apache-maven-3.9.6-bin.tar.gz | tar -xz -C /opt && \
