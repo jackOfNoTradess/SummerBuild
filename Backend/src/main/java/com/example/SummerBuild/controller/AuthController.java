@@ -9,5 +9,5 @@ public class AuthController {
   @RequestMapping("/")
   public String index() {
     return "Welcome to SummerBuild";
-    return false;
+  }
 }
