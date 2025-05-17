@@ -1,0 +1,23 @@
+cat > .githooks/pre-commit << 'EOF'
+#!/bin/sh
+echo '[git hook] executing spotless:apply to format code before commit'
+
+# Stash any unstaged changes
+git stash -q --keep-index
+
+# Run spotless:apply
+cd $(git rev-parse --show-toplevel)/Backend
+mvn spotless:apply
+
+# Store the last exit code
+RESULT=$?
+
+# Stage formatting changes
+git add -u
+
+# Un-stash the stashed changes
+git stash pop -q
+
+# Return the 'spotless:apply' exit code
+exit $RESULT
+EOF
