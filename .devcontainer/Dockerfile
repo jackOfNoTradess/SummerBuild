@@ -9,11 +9,20 @@ RUN sudo apt-get update && apt-get install -y \
     software-properties-common \
     && rm -rf /var/lib/apt/lists/*
 
-# Install OpenJDK 24
+# Install OpenJDK 24 based on architecture
 RUN mkdir -p /usr/lib/jvm && \
-    curl -fsSL https://download.oracle.com/java/24/latest/jdk-24_linux-x64_bin.tar.gz | \
-    tar -xz -C /usr/lib/jvm && \
-    ln -s /usr/lib/jvm/jdk-24 /usr/lib/jvm/java-24-openjdk-amd64 
+    ARCH=$(uname -m) && \
+    if [ "$ARCH" = "x86_64" ]; then \
+        echo "Detected x86_64 architecture" && \
+        curl -fsSL https://download.oracle.com/java/24/latest/jdk-24_linux-x64_bin.tar.gz | \
+        tar -xz -C /usr/lib/jvm; \
+    elif [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then \
+        echo "Detected ARM64 architecture" && \
+        curl -fsSL https://download.oracle.com/java/24/latest/jdk-24_linux-aarch64_bin.tar.gz | \
+        tar -xz -C /usr/lib/jvm; \
+    else \
+        echo "Unsupported architecture: $ARCH" && exit 1; \
+    fi
 
 RUN actual_jdk_dir=$(find /usr/lib/jvm -maxdepth 1 -name "jdk-*" -type d | head -n 1) && \
     ln -sf "$actual_jdk_dir" /usr/lib/jvm/java-24-openjdk-amd64
