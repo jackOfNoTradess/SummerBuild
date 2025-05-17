@@ -6,7 +6,10 @@ RUN sudo apt-get update && apt-get install -y \
     unzip \
     gnupg2 \
     git \
+    python3 \
+    python3-pip \
     software-properties-common \
+    && pip3 install pre-commit \
     && rm -rf /var/lib/apt/lists/*
 
 # Install OpenJDK 24 based on architecture
