@@ -1,4 +1,3 @@
-cat > .githooks/pre-commit << 'EOF'
 #!/bin/sh
 echo '[git hook] executing spotless:apply to format code before commit'
 
@@ -20,4 +19,3 @@ git stash pop -q
 
 # Return the 'spotless:apply' exit code
 exit $RESULT
-EOF
