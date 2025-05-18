@@ -1,21 +1,33 @@
 #!/bin/sh
-echo '[git hook] executing spotless:apply to format code before commit'
+echo "Pre-commit hook is running!"
 
-# Stash any unstaged changes
-git stash -q --keep-index
+# Get the absolute path to the repository root
+REPO_ROOT=$(git rev-parse --show-toplevel)
 
-# Run spotless:apply
-cd $(git rev-parse --show-toplevel)/Backend
-mvn spotless:apply
+# Check if there are any staged Java files
+STAGED_JAVA_FILES=$(git diff --cached --name-only --diff-filter=ACMR | grep "\.java$")
 
-# Store the last exit code
-RESULT=$?
-
-# Stage formatting changes
-git add -u
+if [ -n "$STAGED_JAVA_FILES" ]; then
+  # Run spotless:apply in the Backend directory
+  cd "$REPO_ROOT/Backend"
+  mvn spotless:apply
+  
+  # Store the last exit code
+  RESULT=$?
+  
+  # If Spotless ran successfully, stage the formatting changes
+  if [ $RESULT -eq 0 ]; then
+    # Stage formatting changes (from the repo root to catch all changes)
+    cd "$REPO_ROOT"
+    git add -u
+  fi
+else
+  # No Java files to format
+  RESULT=0
+fi
 
 # Un-stash the stashed changes
-git stash pop -q
+git stash pop -q 2>/dev/null || true
 
-# Return the 'spotless:apply' exit code
+# Return the spotless:apply exit code
 exit $RESULT
