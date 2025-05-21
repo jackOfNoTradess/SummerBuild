@@ -1,10 +1,15 @@
 package com.example.SummerBuild.model;
 
+import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import jakarta.persistence.*;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Entity
+@Getter
+@Setter
 @Table(name = "events")
 public class Event {
   @Id
@@ -17,37 +22,4 @@ public class Event {
   @Column(nullable = false)
   private OffsetDateTime date;
 
-  // Default constructor
-  public Event() {}
-
-  // Constructor with fields
-  public Event(String name, OffsetDateTime date) {
-    this.name = name;
-    this.date = date;
   }
-
-  // Getters and setters
-  public UUID getId() {
-    return id;
-  }
-
-  public String getName() {
-    return name;
-  }
-
-  public OffsetDateTime getDate() {
-    return date;
-  }
-
-  public void setId(UUID id) {
-    this.id = id;
-  }
-
-  public void setName(String name) {
-    this.name = name;
-  }
-
-  public void setDate(OffsetDateTime date) {
-    this.date = date;
-  }
-}
