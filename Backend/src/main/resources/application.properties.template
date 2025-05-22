@@ -1,9 +1,11 @@
 spring.application.name=SummerBuild
 
 # Supabase PostgreSQL Database Configuration
-spring.datasource.url=jdbc:postgresql://localhost:54322/postgres
-spring.datasource.username=your_username
-spring.datasource.password=your_password
+# Ensure the following environment variables are set in your deployment environment:
+# DB_URL, DB_USER, DB_PASS
+spring.datasource.url=${DB_URL}
+spring.datasource.username=${DB_USER}
+spring.datasource.password=${DB_PASS}
 spring.datasource.driver-class-name=org.postgresql.Driver
 
 # JPA/Hibernate Configuration
