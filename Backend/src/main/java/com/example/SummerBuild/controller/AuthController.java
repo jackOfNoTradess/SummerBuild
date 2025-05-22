@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class AuthController {
 
-  Logger logger = LoggerFactory.getLogger(AuthController.class);
+  private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
 
   @RequestMapping("/")
   public String index() {
