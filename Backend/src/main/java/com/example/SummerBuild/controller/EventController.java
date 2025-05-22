@@ -24,12 +24,12 @@ public class EventController {
   }
 
   /**
-   * Create a new event with error handling POST /api/events/create
+   * Create a new event with error handling POST /api/events
    *
    * @param eventDTO The event data
    * @return The created event or error response
    */
-  @PostMapping("/create")
+  @PostMapping
   public ResponseEntity<?> createEvent(@RequestBody @Validated EventDTO eventDTO) {
     try {
       // Validate required fields
