@@ -2,12 +2,15 @@ package com.example.SummerBuild;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
+import org.springframework.context.ConfigurableApplicationContext;
 
-@SpringBootApplication(exclude = {DataSourceAutoConfiguration.class})
+@SpringBootApplication
 public class SummerBuildApplication {
-
   public static void main(String[] args) {
-    SpringApplication.run(SummerBuildApplication.class, args);
+    initializeApplication(args);
+  }
+
+  static ConfigurableApplicationContext initializeApplication(String[] args) {
+    return SpringApplication.run(SummerBuildApplication.class, args);
   }
 }
