@@ -1,3 +1,7 @@
+logging.level.root=WARN
+logging.level.com.example.SummerBuild=TRACE
+logging.file.name=./logs/summerbuild.log
+
 spring.application.name=SummerBuild
 
 # Supabase PostgreSQL Database Configuration
