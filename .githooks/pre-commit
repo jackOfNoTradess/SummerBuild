@@ -4,6 +4,19 @@ echo "Pre-commit hook is running!"
 # Get the absolute path to the repository root
 REPO_ROOT=$(git rev-parse --show-toplevel)
 
+# Check for JSON files
+STAGED_JSON_FILES=$(git diff --cached --name-only --diff-filter=ACMR | grep "\.json$")
+
+if [ -n "$STAGED_JSON_FILES" ]; then
+  echo "Checking JSON files for formatting..."
+  for json_file in $STAGED_JSON_FILES; do
+    if ! python3 -c "import json5; json5.load(open('$json_file'))" > /dev/null 2>&1; then
+      echo "Error: $json_file contains invalid JSON"
+      exit 1
+    fi
+  done
+fi
+
 # Check if there are any staged Java files
 STAGED_JAVA_FILES=$(git diff --cached --name-only --diff-filter=ACMR | grep "\.java$")
 
