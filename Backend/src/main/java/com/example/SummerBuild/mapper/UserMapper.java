@@ -43,8 +43,14 @@ public class UserMapper implements GenericMapper<User, UserDto> {
       return;
     }
 
-    entity.setUsername(dto.getUsername());
-    entity.setEmail(dto.getEmail());
-    entity.setUpdatedAt(dto.getUpdatedAt());
+    if (dto.getUsername() != null) {
+      entity.setUsername(dto.getUsername());
+    }
+    if (dto.getEmail() != null) {
+      entity.setEmail(dto.getEmail());
+    }
+    if (dto.getUpdatedAt() != null) {
+      entity.setUpdatedAt(dto.getUpdatedAt());
+    }
   }
 }
