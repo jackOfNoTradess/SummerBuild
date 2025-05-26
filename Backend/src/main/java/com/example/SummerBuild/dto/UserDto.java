@@ -12,6 +12,4 @@ public class UserDto extends BaseDto {
   private String email;
   private UserRole role;
   private Gender gender;
-  // Note: password is not included in DTO for security
-  // Add more user-specific fields here
 }

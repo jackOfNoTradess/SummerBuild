@@ -15,6 +15,4 @@ public abstract class BaseDto {
   private LocalDateTime createdAt;
 
   private LocalDateTime updatedAt;
-
-  // You can add more common fields here
 }
