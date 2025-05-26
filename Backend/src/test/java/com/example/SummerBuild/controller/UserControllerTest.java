@@ -20,16 +20,27 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
 import org.springframework.boot.autoconfigure.validation.ValidationAutoConfiguration;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(
-    value = UserController.class,
+    controllers = UserController.class,
     excludeAutoConfiguration = {SecurityAutoConfiguration.class})
 @Import(ValidationAutoConfiguration.class)
+@ActiveProfiles("test")
+@AutoConfigureMockMvc
+@TestPropertySource(
+    properties = {
+      "spring.main.allow-bean-definition-overriding=true",
+      "spring.jpa.show-sql=true",
+      "spring.jpa.hibernate.ddl-auto=create-drop"
+    })
 class UserControllerTest {
 
   @Autowired private MockMvc mockMvc;
