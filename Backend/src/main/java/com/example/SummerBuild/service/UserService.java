@@ -34,7 +34,7 @@ public class UserService {
     }
   }
 
-  @Transactional(readOnly = true) // readOnly = true (only read data, not modify it)
+  @Transactional(readOnly = true)
   public List<UserDto> findAll() {
     return userRepository.findAll().stream().map(userMapper::toDto).toList();
   }
