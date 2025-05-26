@@ -46,6 +46,13 @@ public class UserController {
 
   // POST /api/users
   // Body: UserDto JSON
+  /**
+   * Create a new user. Required JSON fields: { "name": "John Doe", // Required, non-blank "email":
+   * "john@example.com", // Required, valid email format "role": "USER", // Required, valid UserRole
+   * enum value "gender": "MALE" // Required, valid Gender enum value } Note: id, createdAt, and
+   * updatedAt are auto-generated Even if id, createdAt, and updatedAt are provided, it will be
+   * ignored
+   */
   @PostMapping
   public ResponseEntity<UserDto> createUser(@Valid @RequestBody UserDto userDto) {
     UserDto createdUser = userService.create(userDto);
@@ -54,6 +61,14 @@ public class UserController {
 
   // PUT /api/users/{id}
   // Body: UserDto JSON
+  /**
+   * Update an existing user. All fields are optional in the request body. Only provided fields will
+   * be updated. Example JSON: { "name": "John Updated", // Optional, non-blank if provided "email":
+   * "john@new.com", // Optional, valid email if provided "role": "ADMIN", // Optional, valid
+   * UserRole if provided "gender": "MALE" // Optional, valid Gender if provided } Note: id,
+   * createdAt, and updatedAt are managed by the server and cannot be modified Even if id,
+   * createdAt, and updatedAt are provided, it will be ignored
+   */
   @PutMapping("/{id}")
   public ResponseEntity<UserDto> updateUser(
       @PathVariable UUID id, @Valid @RequestBody UserDto userDto) {
