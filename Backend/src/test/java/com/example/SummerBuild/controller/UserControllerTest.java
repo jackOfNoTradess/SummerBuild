@@ -19,6 +19,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
+import org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration;
 import org.springframework.boot.autoconfigure.validation.ValidationAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -30,13 +31,17 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(
-    controllers = UserController.class,
-    excludeAutoConfiguration = {SecurityAutoConfiguration.class})
+    value = UserController.class,
+    excludeAutoConfiguration = {
+      SecurityAutoConfiguration.class,
+      UserDetailsServiceAutoConfiguration.class
+    })
 @Import(ValidationAutoConfiguration.class)
 @ActiveProfiles("test")
 @AutoConfigureMockMvc
 @TestPropertySource(
     properties = {
+      "spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration",
       "spring.main.allow-bean-definition-overriding=true",
       "spring.jpa.show-sql=true",
       "spring.jpa.hibernate.ddl-auto=create-drop"
