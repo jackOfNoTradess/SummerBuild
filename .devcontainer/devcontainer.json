@@ -26,7 +26,7 @@
 	// This command does two things:
 	// 1. Installs json5 for JSON validation in pre-commit hooks
 	// 2. Configures Git to use .githooks directory instead of .git/hooks
-	//    This ensures all developers use the same pre-commit hooks for consistent code formatting
+	//    This ensures everyone uses the same pre-commit hooks for consistent code formatting
 	"postCreateCommand": "pip install json5 && git config core.hooksPath .githooks",
 	// Configure tool-specific properties.
 	"customizations": {
