@@ -79,6 +79,15 @@
   </pluginRepositories>
 
 	<build>
+		<pluginManagement>
+			<plugins>
+				<plugin>
+					<groupId>com.rudikershaw.gitbuildhook</groupId>
+					<artifactId>git-build-hook-maven-plugin</artifactId>
+					<version>3.4.1</version>
+				</plugin>
+			</plugins>
+		</pluginManagement>
 		<plugins>
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
@@ -132,14 +141,6 @@
             <configuration>
                 <preCommit>mvn spotless:apply</preCommit>
             </configuration>
-            <executions>
-                <execution>
-                    <goals>
-                        <goal>install</goal>
-                    </goals>
-                    <phase>initialize</phase>
-                </execution>
-            </executions>
         </plugin>
 
 		</plugins>

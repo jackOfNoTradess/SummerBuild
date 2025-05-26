@@ -23,7 +23,11 @@
 		8080
 	],
 	// Use 'postCreateCommand' to run commands after the container is created.
-	// "postCreateCommand": "git config --global user.name \"${GIT_USER_NAME}\" && git config --global user.email ${GIT_USER_EMAIL}",
+	// This command does two things:
+	// 1. Installs json5 for JSON validation in pre-commit hooks
+	// 2. Configures Git to use .githooks directory instead of .git/hooks
+	//    This ensures all developers use the same pre-commit hooks for consistent code formatting
+	"postCreateCommand": "pip install json5 && git config core.hooksPath .githooks",
 	// Configure tool-specific properties.
 	"customizations": {
 		"vscode": {
@@ -37,9 +41,5 @@
 		}
 	},
 	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
-	"remoteUser": "root",
-
-	// Configure Git to use hooks from .githooks directory instead of the default .git/hooks
-	// This ensures everyone working in this repo can use the same pre-commit hooks for code formatting
-	"postStartCommand": "git config core.hooksPath .githooks"
+	"remoteUser": "root"
 }
