@@ -2,7 +2,9 @@ package com.example.SummerBuild.repository;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.example.SummerBuild.model.Gender;
 import com.example.SummerBuild.model.User;
+import com.example.SummerBuild.model.UserRole;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,9 +22,10 @@ public class UserRepositoryTest {
   void whenSaveUser_thenReturnSavedUser() {
     // Given
     User user = new User();
-    user.setUsername("testuser");
+    user.setName("testuser");
     user.setEmail("test@example.com");
-    user.setPassword("password123");
+    user.setRole(UserRole.USER);
+    user.setGender(Gender.MALE);
 
     // When
     User savedUser = userRepository.save(user);
@@ -30,34 +33,36 @@ public class UserRepositoryTest {
     // Then
     assertThat(savedUser).isNotNull();
     assertThat(savedUser.getId()).isNotNull();
-    assertThat(savedUser.getUsername()).isEqualTo("testuser");
+    assertThat(savedUser.getName()).isEqualTo("testuser");
   }
 
   @Test
-  void whenFindByUsername_thenReturnUser() {
+  void whenFindByName_thenReturnUser() {
     // Given
     User user = new User();
-    user.setUsername("testuser");
+    user.setName("testuser");
     user.setEmail("test@example.com");
-    user.setPassword("password123");
+    user.setRole(UserRole.USER);
+    user.setGender(Gender.MALE);
     entityManager.persist(user);
     entityManager.flush();
 
     // When
-    Optional<User> found = userRepository.findByUsername("testuser");
+    Optional<User> found = userRepository.findByName("testuser");
 
     // Then
     assertThat(found).isPresent();
-    assertThat(found.get().getUsername()).isEqualTo("testuser");
+    assertThat(found.get().getName()).isEqualTo("testuser");
   }
 
   @Test
   void whenFindByEmail_thenReturnUser() {
     // Given
     User user = new User();
-    user.setUsername("testuser");
+    user.setName("testuser");
     user.setEmail("test@example.com");
-    user.setPassword("password123");
+    user.setRole(UserRole.USER);
+    user.setGender(Gender.MALE);
     entityManager.persist(user);
     entityManager.flush();
 
