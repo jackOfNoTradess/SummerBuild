@@ -1,27 +1,31 @@
 package com.example.SummerBuild.model;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.PrePersist;
-import jakarta.persistence.Table;
-import java.time.LocalDateTime;
+import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
 @Table(name = "users")
 @Getter
 @Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class User extends BaseEntity {
-  private String username;
+  @Column(name = "name", nullable = false, length = 255)
+  private String name;
+
+  @Column(name = "email", nullable = false, unique = true, length = 255)
   private String email;
-  private String password;
 
-  // Add more user-specific fields here
+  @Enumerated(EnumType.STRING)
+  @Column(name = "role", nullable = false)
+  private UserRole role;
 
-  @PrePersist
-  protected void onCreate() {
-    LocalDateTime now = LocalDateTime.now();
-    setCreatedAt(now);
-    setUpdatedAt(now);
-  }
+  @Enumerated(EnumType.STRING)
+  @Column(name = "gender", nullable = false)
+  private Gender gender;
 }
