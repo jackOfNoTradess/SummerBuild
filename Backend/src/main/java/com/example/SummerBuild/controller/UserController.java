@@ -3,6 +3,7 @@ package com.example.SummerBuild.controller;
 import com.example.SummerBuild.dto.UserDto;
 import com.example.SummerBuild.model.UserRole;
 import com.example.SummerBuild.service.UserService;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;
@@ -22,6 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
+@SecurityRequirement(name = "bearerAuth")
 public class UserController {
   private final UserService userService;
 
