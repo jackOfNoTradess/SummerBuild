@@ -2,7 +2,7 @@ package com.example.SummerBuild.dto;
 
 import com.example.SummerBuild.model.Gender;
 import com.example.SummerBuild.model.UserRole;
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -14,8 +14,9 @@ import lombok.EqualsAndHashCode;
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class UserDto extends BaseDto {
-  // Server-managed field, ignored when client sends data
-  @JsonIgnore private UUID id;
+  // Server-managed field, ignored when client sends data but included in responses
+  @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+  private UUID id;
 
   @NotBlank(message = "Name is required")
   private String name;
@@ -30,9 +31,11 @@ public class UserDto extends BaseDto {
   @NotNull(message = "Gender is required")
   private Gender gender;
 
-  // Server-managed field, ignored when client sends data
-  @JsonIgnore private LocalDateTime createdAt;
+  // Server-managed field, ignored when client sends data but included in responses
+  @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+  private LocalDateTime createdAt;
 
-  // Server-managed field, ignored when client sends data
-  @JsonIgnore private LocalDateTime updatedAt;
+  // Server-managed field, ignored when client sends data but included in responses
+  @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+  private LocalDateTime updatedAt;
 }
