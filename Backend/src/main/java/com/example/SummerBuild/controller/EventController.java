@@ -1,7 +1,7 @@
 package com.example.SummerBuild.controller;
 
 import com.example.SummerBuild.dto.EventDTO;
-import com.example.SummerBuild.services.EventService;
+import com.example.SummerBuild.service.EventService;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
