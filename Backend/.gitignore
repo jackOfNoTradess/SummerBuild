@@ -35,3 +35,5 @@ build/
 ### application.properties/.env ###
 **/application.properties
 !**/application.properties.template
+**/env.properties
+!**/env.properties.template

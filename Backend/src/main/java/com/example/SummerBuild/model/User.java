@@ -1,6 +1,7 @@
 package com.example.SummerBuild.model;
 
 import jakarta.persistence.*;
+import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -15,11 +16,8 @@ import lombok.Setter;
 @AllArgsConstructor
 @Builder
 public class User extends BaseEntity {
-  @Column(name = "name", nullable = false, length = 255)
-  private String name;
-
-  @Column(name = "email", nullable = false, unique = true, length = 255)
-  private String email;
+  @Column(name = "userUuid", nullable = false)
+  private UUID userUuid;
 
   @Enumerated(EnumType.STRING)
   @Column(name = "role", nullable = false)

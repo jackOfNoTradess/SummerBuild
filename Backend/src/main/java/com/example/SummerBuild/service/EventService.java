@@ -1,4 +1,4 @@
-package com.example.SummerBuild.services;
+package com.example.SummerBuild.service;
 
 import com.example.SummerBuild.dto.EventDTO;
 import com.example.SummerBuild.model.Event;

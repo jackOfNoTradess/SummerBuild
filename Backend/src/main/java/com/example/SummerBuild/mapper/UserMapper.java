@@ -15,10 +15,9 @@ public class UserMapper implements GenericMapper<User, UserDto> {
 
     UserDto dto = new UserDto();
     dto.setId(entity.getId());
-    dto.setName(entity.getName());
-    dto.setEmail(entity.getEmail());
     dto.setRole(entity.getRole());
     dto.setGender(entity.getGender());
+    dto.setUserUuid(entity.getUserUuid());
     dto.setCreatedAt(entity.getCreatedAt());
     dto.setUpdatedAt(entity.getUpdatedAt());
     return dto;
@@ -32,10 +31,9 @@ public class UserMapper implements GenericMapper<User, UserDto> {
 
     User entity = new User();
     entity.setId(dto.getId());
-    entity.setName(dto.getName());
-    entity.setEmail(dto.getEmail());
     entity.setRole(dto.getRole());
     entity.setGender(dto.getGender());
+    entity.setUserUuid(dto.getUserUuid());
     entity.setCreatedAt(dto.getCreatedAt());
     entity.setUpdatedAt(dto.getUpdatedAt());
     return entity;
@@ -47,12 +45,6 @@ public class UserMapper implements GenericMapper<User, UserDto> {
       return;
     }
 
-    if (dto.getName() != null) {
-      entity.setName(dto.getName());
-    }
-    if (dto.getEmail() != null) {
-      entity.setEmail(dto.getEmail());
-    }
     if (dto.getRole() != null) {
       entity.setRole(dto.getRole());
     }

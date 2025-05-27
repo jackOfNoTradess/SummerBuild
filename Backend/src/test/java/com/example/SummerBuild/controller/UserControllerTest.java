@@ -1,143 +1,186 @@
 package com.example.SummerBuild.controller;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.example.SummerBuild.dto.UserDto;
-import com.example.SummerBuild.model.Gender;
 import com.example.SummerBuild.model.UserRole;
 import com.example.SummerBuild.service.UserService;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import java.time.LocalDateTime;
-import java.util.Arrays;
+import com.example.SummerBuild.service.UserService.ResourceNotFoundException;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.http.MediaType;
-import org.springframework.test.context.ActiveProfiles;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-@WebMvcTest(UserController.class)
-@ActiveProfiles("test")
+@ExtendWith(MockitoExtension.class)
 class UserControllerTest {
 
-  @Autowired private MockMvc mockMvc;
-  @MockBean private UserService userService;
-  @Autowired private ObjectMapper objectMapper;
+  private MockMvc mockMvc;
 
-  private UserDto userDto;
-  private UUID userId;
+  @Mock private UserService userService;
+
+  @InjectMocks private UserController userController;
+
+  private UUID testUserId;
+  private String sampleJson;
 
   @BeforeEach
   void setUp() {
-    userId = UUID.randomUUID();
-    userDto = new UserDto();
-    userDto.setId(userId);
-    userDto.setName("John Doe");
-    userDto.setEmail("john@example.com");
-    userDto.setRole(UserRole.USER);
-    userDto.setGender(Gender.MALE);
-    userDto.setCreatedAt(LocalDateTime.now());
-    userDto.setUpdatedAt(LocalDateTime.now());
+    mockMvc =
+        MockMvcBuilders.standaloneSetup(userController)
+            .setMessageConverters(
+                new org.springframework.http.converter.StringHttpMessageConverter(),
+                new MappingJackson2HttpMessageConverter())
+            .build();
+
+    testUserId = UUID.randomUUID();
+    sampleJson = "{\"message\":\"ok\"}";
   }
 
   @Test
-  void getAll() throws Exception {
-    when(userService.findAll()).thenReturn(Arrays.asList(userDto));
+  @DisplayName("GET /api/users - happy flow")
+  void whenGetAllUsers_happyFlow_returns200() throws Exception {
+    given(userService.getAllUsers()).willReturn(ResponseEntity.ok(sampleJson));
 
     mockMvc
         .perform(get("/api/users"))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$[0].name").value("John Doe"));
+        .andExpect(content().string(sampleJson));
+    verify(userService).getAllUsers();
   }
 
   @Test
-  void getById() throws Exception {
-    when(userService.findById(userId)).thenReturn(userDto);
+  @DisplayName("GET /api/users - sad flow (service error)")
+  void whenGetAllUsers_sadFlow_returns500() throws Exception {
+    given(userService.getAllUsers())
+        .willReturn(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Service down"));
 
     mockMvc
-        .perform(get("/api/users/{id}", userId))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.name").value("John Doe"));
+        .perform(get("/api/users"))
+        .andExpect(status().isInternalServerError())
+        .andExpect(content().string("Service down"));
+    verify(userService).getAllUsers();
   }
 
   @Test
-  void getByEmail() throws Exception {
-    when(userService.findByEmail("john@example.com")).thenReturn(userDto);
+  @DisplayName("GET /api/users/{id} - happy flow")
+  void whenGetUserById_happyFlow_returns200() throws Exception {
+    given(userService.getUserById(testUserId)).willReturn(ResponseEntity.ok(sampleJson));
 
     mockMvc
-        .perform(get("/api/users/email/{email}", "john@example.com"))
+        .perform(get("/api/users/{id}", testUserId))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.name").value("John Doe"));
+        .andExpect(content().string(sampleJson));
+    verify(userService).getUserById(testUserId);
   }
 
   @Test
-  void create() throws Exception {
-    when(userService.create(any(UserDto.class))).thenReturn(userDto);
+  @DisplayName("GET /api/users/{id} - sad flow (not found)")
+  void whenGetUserById_sadFlow_returns404() throws Exception {
+    given(userService.getUserById(testUserId))
+        .willReturn(ResponseEntity.status(HttpStatus.NOT_FOUND).body("Not found"));
+
+    mockMvc
+        .perform(get("/api/users/{id}", testUserId))
+        .andExpect(status().isNotFound())
+        .andExpect(content().string("Not found"));
+    verify(userService).getUserById(testUserId);
+  }
+
+  @Test
+  @DisplayName("DELETE /api/users/{id} - happy flow")
+  void whenDeleteUser_happyFlow_returns204() throws Exception {
+    given(userService.deleteUserById(testUserId)).willReturn(ResponseEntity.noContent().build());
+
+    mockMvc.perform(delete("/api/users/{id}", testUserId)).andExpect(status().isNoContent());
+    verify(userService).deleteUserById(testUserId);
+  }
+
+  @Test
+  @DisplayName("DELETE /api/users/{id} - sad flow (not found)")
+  void whenDeleteUser_sadFlow_returns404() throws Exception {
+    given(userService.deleteUserById(testUserId))
+        .willReturn(ResponseEntity.status(HttpStatus.NOT_FOUND).body("Not found"));
+
+    mockMvc
+        .perform(delete("/api/users/{id}", testUserId))
+        .andExpect(status().isNotFound())
+        .andExpect(content().string("Not found"));
+    verify(userService).deleteUserById(testUserId);
+  }
+
+  @Test
+  @DisplayName("PUT /api/users/{id} - happy flow")
+  void whenUpdateUser_happyFlow_returns200() throws Exception {
+    given(userService.updateUserById(eq(testUserId), any(Map.class)))
+        .willReturn(ResponseEntity.ok(sampleJson));
 
     mockMvc
         .perform(
-            post("/api/users")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(userDto)))
-        .andExpect(status().isCreated())
-        .andExpect(jsonPath("$.name").value("John Doe"));
+            put("/api/users/{id}", testUserId).param("password", "pwd").param("newName", "Name"))
+        .andExpect(status().isOk())
+        .andExpect(content().string(sampleJson));
+    verify(userService)
+        .updateUserById(
+            eq(testUserId),
+            argThat(map -> map.containsKey("password") && map.containsKey("user_metadata")));
   }
 
   @Test
-  void update() throws Exception {
-    when(userService.update(eq(userId), any(UserDto.class))).thenReturn(userDto);
+  @DisplayName("PUT /api/users/{id} - sad flow (conflict)")
+  void whenUpdateUser_sadFlow_returns409() throws Exception {
+    given(userService.updateUserById(eq(testUserId), any(Map.class)))
+        .willReturn(ResponseEntity.status(HttpStatus.CONFLICT).body("Conflict"));
 
     mockMvc
-        .perform(
-            put("/api/users/{id}", userId)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(userDto)))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.name").value("John Doe"));
+        .perform(put("/api/users/{id}", testUserId).param("password", "pwd"))
+        .andExpect(status().isConflict())
+        .andExpect(content().string("Conflict"));
+    verify(userService).updateUserById(eq(testUserId), any(Map.class));
   }
 
   @Test
-  void deleteUser() throws Exception {
-    doNothing().when(userService).delete(userId);
-
-    mockMvc.perform(delete("/api/users/{id}", userId)).andExpect(status().isNoContent());
-  }
-
-  @Test
-  void search() throws Exception {
-    when(userService.findByNameContaining("John")).thenReturn(Arrays.asList(userDto));
+  @DisplayName("GET /api/users/role/{role} - happy flow")
+  void whenGetUsersByRole_happyFlow_returns200() throws Exception {
+    UserDto dto = new UserDto();
+    dto.setUserUuid(UUID.randomUUID());
+    dto.setRole(UserRole.ADMIN);
+    given(userService.findByRole(UserRole.ADMIN)).willReturn(List.of(dto));
 
     mockMvc
-        .perform(get("/api/users/search").param("name", "John"))
+        .perform(get("/api/users/role/{role}", UserRole.ADMIN))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$[0].name").value("John Doe"));
+        .andExpect(jsonPath("$[0].role").value("ADMIN"));
+    verify(userService).findByRole(UserRole.ADMIN);
   }
 
   @Test
-  void getByRole() throws Exception {
-    when(userService.findByRole(UserRole.USER)).thenReturn(Arrays.asList(userDto));
+  @DisplayName("GET /api/users/role/{role} - sad flow (not found)")
+  void whenGetUsersByRole_sadFlow_returns404() throws Exception {
+    given(userService.findByRole(UserRole.ADMIN))
+        .willThrow(new ResourceNotFoundException("Role not found"));
 
-    mockMvc
-        .perform(get("/api/users/role/{role}", UserRole.USER))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$[0].name").value("John Doe"));
-  }
-
-  @Test
-  void countByRole() throws Exception {
-    when(userService.countByRole(UserRole.USER)).thenReturn(1L);
-
-    mockMvc
-        .perform(get("/api/users/count").param("role", UserRole.USER.toString()))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$").value(1));
+    mockMvc.perform(get("/api/users/role/{role}", UserRole.ADMIN)).andExpect(status().isNotFound());
+    verify(userService).findByRole(UserRole.ADMIN);
   }
 }

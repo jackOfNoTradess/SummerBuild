@@ -5,72 +5,61 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.example.SummerBuild.model.Gender;
 import com.example.SummerBuild.model.User;
 import com.example.SummerBuild.model.UserRole;
-import java.util.Optional;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 
 @DataJpaTest
 public class UserRepositoryTest {
 
-  @Autowired private TestEntityManager entityManager;
-
   @Autowired private UserRepository userRepository;
 
-  @Test
-  void whenSaveUser_thenReturnSavedUser() {
-    // Given
-    User user = new User();
-    user.setName("testuser");
-    user.setEmail("test@example.com");
-    user.setRole(UserRole.USER);
-    user.setGender(Gender.MALE);
+  private User user1, user2, user3;
 
-    // When
-    User savedUser = userRepository.save(user);
+  @BeforeEach
+  void setUp() {
+    user1 =
+        User.builder().userUuid(UUID.randomUUID()).role(UserRole.ADMIN).gender(Gender.MALE).build();
 
-    // Then
-    assertThat(savedUser).isNotNull();
-    assertThat(savedUser.getId()).isNotNull();
-    assertThat(savedUser.getName()).isEqualTo("testuser");
+    user2 =
+        User.builder()
+            .userUuid(UUID.randomUUID())
+            .role(UserRole.USER)
+            .gender(Gender.FEMALE)
+            .build();
+
+    user3 =
+        User.builder().userUuid(UUID.randomUUID()).role(UserRole.USER).gender(Gender.MALE).build();
+
+    userRepository.saveAll(List.of(user1, user2, user3));
   }
 
   @Test
-  void whenFindByName_thenReturnUser() {
-    // Given
-    User user = new User();
-    user.setName("testuser");
-    user.setEmail("test@example.com");
-    user.setRole(UserRole.USER);
-    user.setGender(Gender.MALE);
-    entityManager.persist(user);
-    entityManager.flush();
-
-    // When
-    Optional<User> found = userRepository.findByName("testuser");
-
-    // Then
-    assertThat(found).isPresent();
-    assertThat(found.get().getName()).isEqualTo("testuser");
+  void testFindByRole() {
+    List<User> users = userRepository.findByRole(UserRole.USER);
+    assertThat(users).hasSize(2).extracting("role").containsOnly(UserRole.USER);
   }
 
   @Test
-  void whenFindByEmail_thenReturnUser() {
-    // Given
-    User user = new User();
-    user.setName("testuser");
-    user.setEmail("test@example.com");
-    user.setRole(UserRole.USER);
-    user.setGender(Gender.MALE);
-    entityManager.persist(user);
-    entityManager.flush();
+  void testFindByGender() {
+    List<User> users = userRepository.findByGender(Gender.MALE);
+    assertThat(users).hasSize(2).extracting("gender").containsOnly(Gender.MALE);
+  }
 
-    // When
-    Optional<User> found = userRepository.findByEmail("test@example.com");
+  @Test
+  void testFindByCreatedBetween() {
+    LocalDateTime now = LocalDateTime.now();
+    List<User> users = userRepository.findByCreatedBetween(now.minusDays(1), now.plusDays(1));
+    assertThat(users).hasSize(3);
+  }
 
-    // Then
-    assertThat(found).isPresent();
-    assertThat(found.get().getEmail()).isEqualTo("test@example.com");
+  @Test
+  void testCountByRole() {
+    long count = userRepository.countByRole(UserRole.USER);
+    assertThat(count).isEqualTo(2);
   }
 }

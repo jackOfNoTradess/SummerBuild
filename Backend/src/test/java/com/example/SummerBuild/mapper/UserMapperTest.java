@@ -1,93 +1,128 @@
 package com.example.SummerBuild.mapper;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.*;
 
 import com.example.SummerBuild.dto.UserDto;
 import com.example.SummerBuild.model.Gender;
 import com.example.SummerBuild.model.User;
 import com.example.SummerBuild.model.UserRole;
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 
-@SpringBootTest
-public class UserMapperTest {
+class UserMapperTest {
 
-  @Autowired private UserMapper userMapper;
+  private UserMapper userMapper;
 
-  @Test
-  void whenConvertUserToDto_thenReturnUserDto() {
-    // Given
-    User user = new User();
-    UUID id = UUID.randomUUID();
-    user.setId(id);
-    user.setName("testuser");
-    user.setEmail("test@example.com");
-    user.setRole(UserRole.USER);
-    user.setGender(Gender.MALE);
-
-    // When
-    UserDto userDto = userMapper.toDto(user);
-
-    // Then
-    assertThat(userDto).isNotNull();
-    assertThat(userDto.getId()).isEqualTo(id);
-    assertThat(userDto.getName()).isEqualTo("testuser");
-    assertThat(userDto.getEmail()).isEqualTo("test@example.com");
-    assertThat(userDto.getRole()).isEqualTo(UserRole.USER);
-    assertThat(userDto.getGender()).isEqualTo(Gender.MALE);
+  @BeforeEach
+  void setUp() {
+    userMapper = new UserMapper();
   }
 
   @Test
-  void whenConvertDtoToUser_thenReturnUser() {
-    // Given
-    UserDto userDto = new UserDto();
-    UUID id = UUID.randomUUID();
-    userDto.setId(id);
-    userDto.setName("testuser");
-    userDto.setEmail("test@example.com");
-    userDto.setRole(UserRole.USER);
-    userDto.setGender(Gender.MALE);
+  void testToDto() {
+    UUID uuid = UUID.randomUUID();
+    LocalDateTime now = LocalDateTime.now();
+    User user = User.builder().userUuid(uuid).gender(Gender.MALE).role(UserRole.ADMIN).build();
+    user.setId(uuid);
+    user.setCreatedAt(now);
+    user.setUpdatedAt(now);
+    UserDto dto = userMapper.toDto(user);
 
-    // When
-    User user = userMapper.toEntity(userDto);
-
-    // Then
-    assertThat(user).isNotNull();
-    assertThat(user.getId()).isEqualTo(id);
-    assertThat(user.getName()).isEqualTo("testuser");
-    assertThat(user.getEmail()).isEqualTo("test@example.com");
-    assertThat(user.getRole()).isEqualTo(UserRole.USER);
-    assertThat(user.getGender()).isEqualTo(Gender.MALE);
+    assertNotNull(dto);
+    assertEquals(user.getId(), dto.getId());
+    assertEquals(user.getUserUuid(), dto.getUserUuid());
+    assertEquals(user.getGender(), dto.getGender());
+    assertEquals(user.getRole(), dto.getRole());
+    assertEquals(user.getCreatedAt(), dto.getCreatedAt());
+    assertEquals(user.getUpdatedAt(), dto.getUpdatedAt());
   }
 
   @Test
-  void whenUpdateUserFromDto_thenUserIsUpdated() {
-    // Given
-    User user = new User();
-    UUID id1 = UUID.randomUUID();
-    user.setId(id1);
-    user.setName("olduser");
-    user.setEmail("old@example.com");
-    user.setRole(UserRole.USER);
-    user.setGender(Gender.MALE);
+  void testToEntity() {
+    UUID uuid = UUID.randomUUID();
+    LocalDateTime now = LocalDateTime.now();
+    UserDto dto = new UserDto();
+    dto.setId(UUID.randomUUID());
+    dto.setUserUuid(uuid);
+    dto.setGender(Gender.FEMALE);
+    dto.setRole(UserRole.USER);
+    dto.setCreatedAt(now);
+    dto.setUpdatedAt(now);
 
-    UserDto userDto = new UserDto();
-    UUID id2 = UUID.randomUUID();
-    userDto.setId(id2);
-    userDto.setName("newuser");
-    userDto.setEmail("new@example.com");
-    userDto.setRole(UserRole.ADMIN);
-    userDto.setGender(Gender.FEMALE);
+    User user = userMapper.toEntity(dto);
 
-    // When
-    userMapper.updateEntityFromDto(userDto, user);
+    assertNotNull(user);
+    assertEquals(dto.getId(), user.getId());
+    assertEquals(dto.getUserUuid(), user.getUserUuid());
+    assertEquals(dto.getGender(), user.getGender());
+    assertEquals(dto.getRole(), user.getRole());
+    assertEquals(dto.getCreatedAt(), user.getCreatedAt());
+    assertEquals(dto.getUpdatedAt(), user.getUpdatedAt());
+  }
 
-    // Then
-    assertThat(user.getName()).isEqualTo("newuser");
-    assertThat(user.getEmail()).isEqualTo("new@example.com");
-    assertThat(user.getRole()).isEqualTo(UserRole.ADMIN);
-    assertThat(user.getGender()).isEqualTo(Gender.FEMALE);
+  @Test
+  void testUpdateEntityFromDto() {
+    User user =
+        User.builder().userUuid(UUID.randomUUID()).gender(Gender.MALE).role(UserRole.ADMIN).build();
+    user.setId(UUID.randomUUID());
+    user.setUpdatedAt(LocalDateTime.now());
+    UserDto dto = new UserDto();
+    dto.setGender(Gender.FEMALE);
+    dto.setRole(UserRole.USER);
+    dto.setUpdatedAt(LocalDateTime.now().plusDays(1));
+
+    userMapper.updateEntityFromDto(dto, user);
+
+    assertEquals(Gender.FEMALE, user.getGender());
+    assertEquals(UserRole.USER, user.getRole());
+    assertEquals(dto.getUpdatedAt(), user.getUpdatedAt());
+  }
+
+  @Test
+  void testToDtoList() {
+    List<User> users =
+        List.of(
+            User.builder()
+                .userUuid(UUID.randomUUID())
+                .gender(Gender.MALE)
+                .role(UserRole.USER)
+                .build(),
+            User.builder()
+                .userUuid(UUID.randomUUID())
+                .gender(Gender.FEMALE)
+                .role(UserRole.ADMIN)
+                .build());
+
+    List<UserDto> dtos = userMapper.toDtoList(users);
+
+    assertEquals(2, dtos.size());
+    assertEquals(users.get(0).getUserUuid(), dtos.get(0).getUserUuid());
+    assertEquals(users.get(1).getUserUuid(), dtos.get(1).getUserUuid());
+  }
+
+  @Test
+  void testToEntityList() {
+    List<UserDto> dtos =
+        List.of(
+            createUserDto(UUID.randomUUID(), UUID.randomUUID(), Gender.MALE, UserRole.ADMIN),
+            createUserDto(UUID.randomUUID(), UUID.randomUUID(), Gender.FEMALE, UserRole.USER));
+
+    List<User> users = userMapper.toEntityList(dtos);
+
+    assertEquals(2, users.size());
+    assertEquals(dtos.get(0).getUserUuid(), users.get(0).getUserUuid());
+    assertEquals(dtos.get(1).getUserUuid(), users.get(1).getUserUuid());
+  }
+
+  private UserDto createUserDto(UUID id, UUID uuid, Gender gender, UserRole role) {
+    UserDto dto = new UserDto();
+    dto.setId(id);
+    dto.setUserUuid(uuid);
+    dto.setGender(gender);
+    dto.setRole(role);
+    return dto;
   }
 }
