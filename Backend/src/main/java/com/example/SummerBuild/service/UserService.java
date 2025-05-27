@@ -9,11 +9,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
 @Service
@@ -21,6 +26,7 @@ import org.springframework.web.client.RestTemplate;
 public class UserService {
   private final UserRepository userRepository;
   private final UserMapper userMapper;
+  private static final Logger logger = LoggerFactory.getLogger(UserService.class);
 
   @Value("${supabase.serviceKey}")
   private String serviceKey;
@@ -70,64 +76,96 @@ public class UserService {
     return userRepository.findByRole(role).stream().map(userMapper::toDto).toList();
   }
 
-  @Transactional
+  // transactional decorator not needed cause its a http request to supabase, not
+  // a direct database action
   public ResponseEntity<String> getAllUsers() {
-    HttpHeaders headers = new HttpHeaders();
-    headers.set("apikey", serviceKey);
-    headers.set("Authorization", "Bearer " + serviceKey);
-    headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+    try {
+      HttpHeaders headers = new HttpHeaders();
+      headers.set("apikey", serviceKey);
+      headers.set("Authorization", "Bearer " + serviceKey);
+      headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
 
-    HttpEntity<String> entity = new HttpEntity<>(headers);
+      HttpEntity<String> entity = new HttpEntity<>(headers);
+      String url = supabaseUrl + "/auth/v1/admin/users";
 
-    String url = supabaseUrl + "/auth/v1/admin/users";
-
-    return restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
+      return restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
+    } catch (HttpClientErrorException | HttpServerErrorException e) {
+      logger.error("Errors in Http Client: ", e);
+      return ResponseEntity.status(e.getStatusCode()).body(e.getResponseBodyAsString());
+    } catch (RestClientException e) {
+      logger.error("Errors in Rest Client: ", e);
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+          .body("Error retrieving users: " + e.getMessage());
+    }
   }
 
-  @Transactional
+  // transactional decorator not needed cause its a http request to supabase, not
+  // a direct database action
   public ResponseEntity<String> getUserById(UUID userId) {
-    HttpHeaders headers = new HttpHeaders();
-    headers.set("apikey", serviceKey);
-    headers.set("Authorization", "Bearer " + serviceKey);
-    headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+    try {
+      HttpHeaders headers = new HttpHeaders();
+      headers.set("apikey", serviceKey);
+      headers.set("Authorization", "Bearer " + serviceKey);
+      headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
 
-    HttpEntity<String> entity = new HttpEntity<>(headers);
+      HttpEntity<String> entity = new HttpEntity<>(headers);
+      String url = supabaseUrl + "/auth/v1/admin/users/" + userId;
 
-    userId.toString();
-
-    String url = supabaseUrl + "/auth/v1/admin/users/" + userId;
-
-    return restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
+      return restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
+    } catch (HttpClientErrorException | HttpServerErrorException e) {
+      logger.error("Errors in Http Client: ", e);
+      return ResponseEntity.status(e.getStatusCode()).body(e.getResponseBodyAsString());
+    } catch (RestClientException e) {
+      logger.error("Errors in Rest Client: ", e);
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+          .body("Error retrieving users: " + e.getMessage());
+    }
   }
 
-  @Transactional
+  // transactional decorator not needed cause its a http request to supabase, not
+  // a direct database action
   public ResponseEntity<String> deleteUserById(UUID userId) {
-    HttpHeaders headers = new HttpHeaders();
-    headers.set("apikey", serviceKey);
-    headers.set("Authorization", "Bearer " + serviceKey);
-    headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+    try {
+      HttpHeaders headers = new HttpHeaders();
+      headers.set("apikey", serviceKey);
+      headers.set("Authorization", "Bearer " + serviceKey);
+      headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
 
-    HttpEntity<String> entity = new HttpEntity<>(headers);
+      HttpEntity<String> entity = new HttpEntity<>(headers);
+      String url = supabaseUrl + "/auth/v1/admin/users/" + userId;
 
-    userId.toString();
-
-    String url = supabaseUrl + "/auth/v1/admin/users/" + userId;
-
-    return restTemplate.exchange(url, HttpMethod.DELETE, entity, String.class);
+      return restTemplate.exchange(url, HttpMethod.DELETE, entity, String.class);
+    } catch (HttpClientErrorException | HttpServerErrorException e) {
+      logger.error("Errors in Http Client: ", e);
+      return ResponseEntity.status(e.getStatusCode()).body(e.getResponseBodyAsString());
+    } catch (RestClientException e) {
+      logger.error("Errors in Rest Client: ", e);
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+          .body("Error retrieving users: " + e.getMessage());
+    }
   }
 
-  @Transactional
+  // transactional decorator not needed cause its a http request to supabase, not
+  // a direct database action
   public ResponseEntity<String> updateUserById(UUID userId, Map<String, Object> updates) {
-    HttpHeaders headers = new HttpHeaders();
-    headers.set("apikey", serviceKey);
-    headers.set("Authorization", "Bearer " + serviceKey);
-    headers.setContentType(MediaType.APPLICATION_JSON);
-    headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+    try {
+      HttpHeaders headers = new HttpHeaders();
+      headers.set("apikey", serviceKey);
+      headers.set("Authorization", "Bearer " + serviceKey);
+      headers.setContentType(MediaType.APPLICATION_JSON);
+      headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
 
-    HttpEntity<Map<String, Object>> entity = new HttpEntity<>(updates, headers);
-    userId.toString();
-    String url = supabaseUrl + "/auth/v1/admin/users/" + userId;
+      HttpEntity<Map<String, Object>> entity = new HttpEntity<>(updates, headers);
+      String url = supabaseUrl + "/auth/v1/admin/users/" + userId;
 
-    return restTemplate.exchange(url, HttpMethod.PUT, entity, String.class);
+      return restTemplate.exchange(url, HttpMethod.PUT, entity, String.class);
+    } catch (HttpClientErrorException | HttpServerErrorException e) {
+      logger.error("Errors in Http Client: ", e);
+      return ResponseEntity.status(e.getStatusCode()).body(e.getResponseBodyAsString());
+    } catch (RestClientException e) {
+      logger.error("Errors in Rest Client: ", e);
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+          .body("Error retrieving users: " + e.getMessage());
+    }
   }
 }
