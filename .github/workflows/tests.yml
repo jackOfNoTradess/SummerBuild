@@ -21,14 +21,14 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Set up JDK 21
-      uses: actions/setup-java@v3
+      uses: actions/setup-java@v4
       with:
         java-version: '21'
         distribution: 'temurin'
         cache: maven # Caches Maven dependencies
 
     - name: Run tests with Maven
-      run: mvn -B test -Dspring.profiles.active=test --batch-mode
+      run: mvn clean test 
 
     - name: Publish Test Report
       uses: mikepenz/action-junit-report@v3
