@@ -28,7 +28,7 @@ jobs:
         cache: maven # Caches Maven dependencies
 
     - name: Run tests with Maven
-      run: mvn -B test
+      run: mvn -B test -Dspring.profiles.active=test --batch-mode
 
     - name: Publish Test Report
       uses: mikepenz/action-junit-report@v3
