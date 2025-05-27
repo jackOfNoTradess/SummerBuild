@@ -26,5 +26,5 @@ jobs:
         key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
         
     - name: Run tests
-      run: ./mvnw clean test 
+      run: ./mvnw -B test 
       working-directory: Backend 
