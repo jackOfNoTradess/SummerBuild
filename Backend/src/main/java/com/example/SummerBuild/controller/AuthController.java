@@ -2,7 +2,6 @@ package com.example.SummerBuild.controller;
 
 import com.example.SummerBuild.model.*;
 import com.example.SummerBuild.service.SupabaseAuthService;
-import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
