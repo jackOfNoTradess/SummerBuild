@@ -34,7 +34,7 @@ class UserServiceTest {
   private final User user =
       User.builder().userUuid(userId).gender(Gender.MALE).role(UserRole.USER).build();
 
-  private final UserDto userDto = new UserDto(); // you can set fields as needed
+  private final UserDto userDto = new UserDto();
 
   @BeforeEach
   void setUp() {
@@ -99,8 +99,6 @@ class UserServiceTest {
 
     assertThat(result).containsExactly(userDto);
   }
-
-  // --- Optional: test HTTP methods with a spy/rest client mock ---
 
   @Test
   void getAllUsers_returnsResponseEntity() {
