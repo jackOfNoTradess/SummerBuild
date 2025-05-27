@@ -2,22 +2,33 @@ package com.example.SummerBuild.service;
 
 import com.example.SummerBuild.dto.UserDto;
 import com.example.SummerBuild.mapper.UserMapper;
-import com.example.SummerBuild.model.User;
 import com.example.SummerBuild.model.UserRole;
 import com.example.SummerBuild.repository.UserRepository;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.client.RestTemplate;
 
 @Service
 @RequiredArgsConstructor
 public class UserService {
   private final UserRepository userRepository;
   private final UserMapper userMapper;
+
+  @Value("${supabase.serviceKey}")
+  private String serviceKey;
+
+  @Value("${supabase.auth.url}")
+  private String supabaseUrl;
+
+  private final RestTemplate restTemplate = new RestTemplate();
 
   @ResponseStatus(HttpStatus.NOT_FOUND)
   public static class ResourceNotFoundException extends RuntimeException {
@@ -46,43 +57,6 @@ public class UserService {
         .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
   }
 
-  // @Transactional(readOnly = true)
-  // public UserDto findByName(String name) {
-  //   return userRepository
-  //       .findByName(name)
-  //       .map(userMapper::toDto)
-  //       .orElseThrow(() -> new ResourceNotFoundException("User not found with name: " + name));
-  // }
-
-  // @Transactional(readOnly = true)
-  // public UserDto findByEmail(String email) {
-  //   return userRepository
-  //       .findByEmail(email)
-  //       .map(userMapper::toDto)
-  //       .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + email));
-  // }
-
-  @Transactional
-  public UserDto create(UserDto userDto) {
-    // validateNewUser(userDto);
-    User user = userMapper.toEntity(userDto);
-    User savedUser = userRepository.save(user);
-    return userMapper.toDto(savedUser);
-  }
-
-  // @Transactional
-  // public UserDto update(UUID id, UserDto userDto) {
-  //   User existingUser =
-  //       userRepository
-  //           .findById(id)
-  //           .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
-
-  //   validateUpdateUser(userDto, existingUser);
-  //   userMapper.updateEntityFromDto(userDto, existingUser);
-  //   User updatedUser = userRepository.save(existingUser);
-  //   return userMapper.toDto(updatedUser);
-  // }
-
   @Transactional
   public void delete(UUID id) {
     if (!userRepository.existsById(id)) {
@@ -96,42 +70,64 @@ public class UserService {
     return userRepository.findByRole(role).stream().map(userMapper::toDto).toList();
   }
 
-  // @Transactional(readOnly = true)
-  // public List<UserDto> findByNameContaining(String name) {
-  //   return userRepository.findByNameContainingIgnoreCase(name).stream()
-  //       .map(userMapper::toDto)
-  //       .toList();
-  // }
+  @Transactional
+  public ResponseEntity<String> getAllUsers() {
+    HttpHeaders headers = new HttpHeaders();
+    headers.set("apikey", serviceKey);
+    headers.set("Authorization", "Bearer " + serviceKey);
+    headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
 
-  // @Transactional(readOnly = true)
-  // public List<UserDto> findByCreatedBetween(LocalDateTime startDate, LocalDateTime endDate) {
-  //   return userRepository.findByCreatedBetween(startDate, endDate).stream()
-  //       .map(userMapper::toDto)
-  //       .toList();
-  // }
+    HttpEntity<String> entity = new HttpEntity<>(headers);
 
-  // @Transactional(readOnly = true)
-  // public long countByRole(UserRole role) {
-  //   return userRepository.countByRole(role);
-  // }
+    String url = supabaseUrl + "/auth/v1/admin/users";
 
-  // private void validateNewUser(UserDto userDto) {
-  //   if (userRepository.existsByEmail(userDto.getEmail())) {
-  //     throw new DuplicateResourceException("Email already exists: " + userDto.getEmail());
-  //   }
-  //   if (userRepository.findByName(userDto.getName()).isPresent()) {
-  //     throw new DuplicateResourceException("Username already exists: " + userDto.getName());
-  //   }
-  // }
+    return restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
+  }
 
-  // private void validateUpdateUser(UserDto userDto, User existingUser) {
-  //   if (!existingUser.getEmail().equals(userDto.getEmail())
-  //       && userRepository.existsByEmail(userDto.getEmail())) {
-  //     throw new DuplicateResourceException("Email already exists: " + userDto.getEmail());
-  //   }
-  //   if (!existingUser.getName().equals(userDto.getName())
-  //       && userRepository.findByName(userDto.getName()).isPresent()) {
-  //     throw new DuplicateResourceException("Username already exists: " + userDto.getName());
-  //   }
-  // }
+  @Transactional
+  public ResponseEntity<String> getUserById(UUID userId) {
+    HttpHeaders headers = new HttpHeaders();
+    headers.set("apikey", serviceKey);
+    headers.set("Authorization", "Bearer " + serviceKey);
+    headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+
+    HttpEntity<String> entity = new HttpEntity<>(headers);
+
+    userId.toString();
+
+    String url = supabaseUrl + "/auth/v1/admin/users/" + userId;
+
+    return restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
+  }
+
+  @Transactional
+  public ResponseEntity<String> deleteUserById(UUID userId) {
+    HttpHeaders headers = new HttpHeaders();
+    headers.set("apikey", serviceKey);
+    headers.set("Authorization", "Bearer " + serviceKey);
+    headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+
+    HttpEntity<String> entity = new HttpEntity<>(headers);
+
+    userId.toString();
+
+    String url = supabaseUrl + "/auth/v1/admin/users/" + userId;
+
+    return restTemplate.exchange(url, HttpMethod.DELETE, entity, String.class);
+  }
+
+  @Transactional
+  public ResponseEntity<String> updateUserById(UUID userId, Map<String, Object> updates) {
+    HttpHeaders headers = new HttpHeaders();
+    headers.set("apikey", serviceKey);
+    headers.set("Authorization", "Bearer " + serviceKey);
+    headers.setContentType(MediaType.APPLICATION_JSON);
+    headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+
+    HttpEntity<Map<String, Object>> entity = new HttpEntity<>(updates, headers);
+    userId.toString();
+    String url = supabaseUrl + "/auth/v1/admin/users/" + userId;
+
+    return restTemplate.exchange(url, HttpMethod.PUT, entity, String.class);
+  }
 }

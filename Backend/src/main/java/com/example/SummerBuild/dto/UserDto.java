@@ -14,7 +14,7 @@ import lombok.EqualsAndHashCode;
 public class UserDto extends BaseDto {
   // Server-managed field, ignored when client sends data but included in responses
   @JsonProperty(access = JsonProperty.Access.READ_ONLY)
-  private UUID UserUuid;
+  private UUID userUuid;
 
   @NotNull(message = "Role is required")
   private UserRole role;
