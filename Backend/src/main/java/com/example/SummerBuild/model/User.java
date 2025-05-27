@@ -16,7 +16,7 @@ import lombok.Setter;
 @AllArgsConstructor
 @Builder
 public class User extends BaseEntity {
-  @Column(name = "userUID", nullable = false)
+  @Column(name = "userUuid", nullable = false)
   private UUID userUuid;
 
   @Enumerated(EnumType.STRING)

@@ -1,3 +1,5 @@
+spring.config.import=file:/workspaces/SummerBuild/Backend/src/main/resources/env.properties
+
 logging.level.root=WARN
 logging.level.com.example.SummerBuild=TRACE
 logging.file.name=./logs/summerbuild.log
@@ -18,11 +20,8 @@ spring.jpa.show-sql=true
 spring.jpa.properties.hibernate.format_sql=true
 spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
 
-# SUPABASE
-SUPABASE_URL=http://localhost:54321
-SUPABASE_ANON_KEY=<REPLACE WITH SUPABASE ANON KEY>
-SUPABASE_JWT_SECRET=<ENCODE IN BASE 64 UR SUPABASE JWT SECRET>
 
 supabase.auth.url=${SUPABASE_URL}
 supabase.anonKey=${SUPABASE_ANON_KEY}
 supabase.jwtSecret=${SUPABASE_JWT_SECRET}
+supabase.serviceKey=${SUPABASE_SERVICE_KEY}
