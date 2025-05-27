@@ -1,5 +1,6 @@
 package com.example.SummerBuild.controller;
 
+import com.example.SummerBuild.model.*;
 import com.example.SummerBuild.service.SupabaseAuthService;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.servlet.http.HttpServletRequest;
@@ -26,10 +27,16 @@ public class AuthController {
 
   @PostMapping("/signup")
   public ResponseEntity<String> signup(
-      @RequestParam String email, @RequestParam String password, HttpServletRequest request) {
+      @RequestParam String email,
+      @RequestParam String password,
+      @RequestParam String displayName,
+      @RequestParam UserRole userRole,
+      @RequestParam Gender gender,
+      HttpServletRequest request) {
     String clientIp = getClientIp(request);
     try {
-      ResponseEntity<String> response = authService.signup(email, password);
+      ResponseEntity<String> response =
+          authService.signup(email, password, displayName, userRole, gender);
       logger.info("Signup successful for email: {}, IP: {}", email, clientIp);
       return response;
     } catch (Exception e) {

@@ -5,7 +5,6 @@ import com.example.SummerBuild.mapper.UserMapper;
 import com.example.SummerBuild.model.User;
 import com.example.SummerBuild.model.UserRole;
 import com.example.SummerBuild.repository.UserRepository;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -47,42 +46,42 @@ public class UserService {
         .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
   }
 
-  @Transactional(readOnly = true)
-  public UserDto findByName(String name) {
-    return userRepository
-        .findByName(name)
-        .map(userMapper::toDto)
-        .orElseThrow(() -> new ResourceNotFoundException("User not found with name: " + name));
-  }
+  // @Transactional(readOnly = true)
+  // public UserDto findByName(String name) {
+  //   return userRepository
+  //       .findByName(name)
+  //       .map(userMapper::toDto)
+  //       .orElseThrow(() -> new ResourceNotFoundException("User not found with name: " + name));
+  // }
 
-  @Transactional(readOnly = true)
-  public UserDto findByEmail(String email) {
-    return userRepository
-        .findByEmail(email)
-        .map(userMapper::toDto)
-        .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + email));
-  }
+  // @Transactional(readOnly = true)
+  // public UserDto findByEmail(String email) {
+  //   return userRepository
+  //       .findByEmail(email)
+  //       .map(userMapper::toDto)
+  //       .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + email));
+  // }
 
   @Transactional
   public UserDto create(UserDto userDto) {
-    validateNewUser(userDto);
+    // validateNewUser(userDto);
     User user = userMapper.toEntity(userDto);
     User savedUser = userRepository.save(user);
     return userMapper.toDto(savedUser);
   }
 
-  @Transactional
-  public UserDto update(UUID id, UserDto userDto) {
-    User existingUser =
-        userRepository
-            .findById(id)
-            .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
+  // @Transactional
+  // public UserDto update(UUID id, UserDto userDto) {
+  //   User existingUser =
+  //       userRepository
+  //           .findById(id)
+  //           .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
 
-    validateUpdateUser(userDto, existingUser);
-    userMapper.updateEntityFromDto(userDto, existingUser);
-    User updatedUser = userRepository.save(existingUser);
-    return userMapper.toDto(updatedUser);
-  }
+  //   validateUpdateUser(userDto, existingUser);
+  //   userMapper.updateEntityFromDto(userDto, existingUser);
+  //   User updatedUser = userRepository.save(existingUser);
+  //   return userMapper.toDto(updatedUser);
+  // }
 
   @Transactional
   public void delete(UUID id) {
@@ -97,42 +96,42 @@ public class UserService {
     return userRepository.findByRole(role).stream().map(userMapper::toDto).toList();
   }
 
-  @Transactional(readOnly = true)
-  public List<UserDto> findByNameContaining(String name) {
-    return userRepository.findByNameContainingIgnoreCase(name).stream()
-        .map(userMapper::toDto)
-        .toList();
-  }
+  // @Transactional(readOnly = true)
+  // public List<UserDto> findByNameContaining(String name) {
+  //   return userRepository.findByNameContainingIgnoreCase(name).stream()
+  //       .map(userMapper::toDto)
+  //       .toList();
+  // }
 
-  @Transactional(readOnly = true)
-  public List<UserDto> findByCreatedBetween(LocalDateTime startDate, LocalDateTime endDate) {
-    return userRepository.findByCreatedBetween(startDate, endDate).stream()
-        .map(userMapper::toDto)
-        .toList();
-  }
+  // @Transactional(readOnly = true)
+  // public List<UserDto> findByCreatedBetween(LocalDateTime startDate, LocalDateTime endDate) {
+  //   return userRepository.findByCreatedBetween(startDate, endDate).stream()
+  //       .map(userMapper::toDto)
+  //       .toList();
+  // }
 
-  @Transactional(readOnly = true)
-  public long countByRole(UserRole role) {
-    return userRepository.countByRole(role);
-  }
+  // @Transactional(readOnly = true)
+  // public long countByRole(UserRole role) {
+  //   return userRepository.countByRole(role);
+  // }
 
-  private void validateNewUser(UserDto userDto) {
-    if (userRepository.existsByEmail(userDto.getEmail())) {
-      throw new DuplicateResourceException("Email already exists: " + userDto.getEmail());
-    }
-    if (userRepository.findByName(userDto.getName()).isPresent()) {
-      throw new DuplicateResourceException("Username already exists: " + userDto.getName());
-    }
-  }
+  // private void validateNewUser(UserDto userDto) {
+  //   if (userRepository.existsByEmail(userDto.getEmail())) {
+  //     throw new DuplicateResourceException("Email already exists: " + userDto.getEmail());
+  //   }
+  //   if (userRepository.findByName(userDto.getName()).isPresent()) {
+  //     throw new DuplicateResourceException("Username already exists: " + userDto.getName());
+  //   }
+  // }
 
-  private void validateUpdateUser(UserDto userDto, User existingUser) {
-    if (!existingUser.getEmail().equals(userDto.getEmail())
-        && userRepository.existsByEmail(userDto.getEmail())) {
-      throw new DuplicateResourceException("Email already exists: " + userDto.getEmail());
-    }
-    if (!existingUser.getName().equals(userDto.getName())
-        && userRepository.findByName(userDto.getName()).isPresent()) {
-      throw new DuplicateResourceException("Username already exists: " + userDto.getName());
-    }
-  }
+  // private void validateUpdateUser(UserDto userDto, User existingUser) {
+  //   if (!existingUser.getEmail().equals(userDto.getEmail())
+  //       && userRepository.existsByEmail(userDto.getEmail())) {
+  //     throw new DuplicateResourceException("Email already exists: " + userDto.getEmail());
+  //   }
+  //   if (!existingUser.getName().equals(userDto.getName())
+  //       && userRepository.findByName(userDto.getName()).isPresent()) {
+  //     throw new DuplicateResourceException("Username already exists: " + userDto.getName());
+  //   }
+  // }
 }

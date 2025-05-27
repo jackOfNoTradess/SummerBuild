@@ -14,10 +14,8 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -41,10 +39,10 @@ public class UserController {
 
   // GET /api/users/email/{email}
   // Example: /api/users/email/john.doe@example.com
-  @GetMapping("/email/{email}")
-  public ResponseEntity<UserDto> getUserByEmail(@PathVariable String email) {
-    return ResponseEntity.ok(userService.findByEmail(email));
-  }
+  // @GetMapping("/email/{email}")
+  // public ResponseEntity<UserDto> getUserByEmail(@PathVariable String email) {
+  //   return ResponseEntity.ok(userService.findByEmail(email));
+  // }
 
   // POST /api/users
   // Body: UserDto JSON
@@ -71,11 +69,11 @@ public class UserController {
    * createdAt, and updatedAt are managed by the server and cannot be modified Even if id,
    * createdAt, and updatedAt are provided, it will be ignored
    */
-  @PutMapping("/{id}")
-  public ResponseEntity<UserDto> updateUser(
-      @PathVariable UUID id, @Valid @RequestBody UserDto userDto) {
-    return ResponseEntity.ok(userService.update(id, userDto));
-  }
+  // @PutMapping("/{id}")
+  // public ResponseEntity<UserDto> updateUser(
+  //     @PathVariable UUID id, @Valid @RequestBody UserDto userDto) {
+  //   return ResponseEntity.ok(userService.update(id, userDto));
+  // }
 
   // DELETE /api/users/{id}
   @DeleteMapping("/{id}")
@@ -86,10 +84,10 @@ public class UserController {
 
   // GET /api/users/search?name=xxx
   // Example: /api/users/search?name=john
-  @GetMapping("/search")
-  public ResponseEntity<List<UserDto>> searchUsersByName(@RequestParam String name) {
-    return ResponseEntity.ok(userService.findByNameContaining(name));
-  }
+  // @GetMapping("/search")
+  // public ResponseEntity<List<UserDto>> searchUsersByName(@RequestParam String name) {
+  //   return ResponseEntity.ok(userService.findByNameContaining(name));
+  // }
 
   // Finding users by role
   // GET /api/users/role/{role}
@@ -102,8 +100,8 @@ public class UserController {
   // Count the number of users by role
   // GET /api/users/count?role=xxx
   // Example: /api/users/count?role=USER
-  @GetMapping("/count")
-  public ResponseEntity<Long> countUsersByRole(@RequestParam UserRole role) {
-    return ResponseEntity.ok(userService.countByRole(role));
-  }
+  // @GetMapping("/count")
+  // public ResponseEntity<Long> countUsersByRole(@RequestParam UserRole role) {
+  //   return ResponseEntity.ok(userService.countByRole(role));
+  // }
 }

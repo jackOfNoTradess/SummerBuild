@@ -17,3 +17,12 @@ spring.jpa.hibernate.ddl-auto=update
 spring.jpa.show-sql=true
 spring.jpa.properties.hibernate.format_sql=true
 spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
+
+# SUPABASE
+SUPABASE_URL=http://localhost:54321
+SUPABASE_ANON_KEY=<REPLACE WITH SUPABASE ANON KEY>
+SUPABASE_JWT_SECRET=<ENCODE IN BASE 64 UR SUPABASE JWT SECRET>
+
+supabase.auth.url=${SUPABASE_URL}
+supabase.anonKey=${SUPABASE_ANON_KEY}
+supabase.jwtSecret=${SUPABASE_JWT_SECRET}
