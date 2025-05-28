@@ -99,7 +99,6 @@
       <version>${supabase.version}</version>
     </dependency>
 
-    <!-- Flyway for database migrations -->
     <dependency>
       <groupId>org.flywaydb</groupId>
       <artifactId>flyway-core</artifactId>
@@ -210,6 +209,27 @@
         <configuration>
           <argLine>-Dnet.bytebuddy.experimental=true</argLine>
         </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.flywaydb</groupId>
+        <artifactId>flyway-maven-plugin</artifactId>
+        <version>10.4.1</version>
+        <configuration>
+          <url>${DB_URL}</url>
+          <user>${DB_USER}</user>
+          <password>${DB_PASS}</password>
+          <locations>
+            <location>classpath:db/migration</location>
+          </locations>
+        </configuration>
+        <dependencies>
+          <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>42.7.2</version>
+          </dependency>
+        </dependencies>
       </plugin>
     </plugins>
   </build>
