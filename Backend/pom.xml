@@ -214,7 +214,7 @@
       <plugin>
         <groupId>org.flywaydb</groupId>
         <artifactId>flyway-maven-plugin</artifactId>
-        <version>10.4.1</version>
+        <version>11.7.2</version>
         <configuration>
           <url>${DB_URL}</url>
           <user>${DB_USER}</user>
@@ -222,6 +222,9 @@
           <locations>
             <location>classpath:db/migration</location>
           </locations>
+          <configFiles>
+            <configFile>src/main/resources/env.properties</configFile>
+          </configFiles>
         </configuration>
         <dependencies>
           <dependency>
