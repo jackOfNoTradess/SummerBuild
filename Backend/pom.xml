@@ -100,6 +100,16 @@
     </dependency>
 
     <dependency>
+      <groupId>org.flywaydb</groupId>
+      <artifactId>flyway-core</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.flywaydb</groupId>
+      <artifactId>flyway-database-postgresql</artifactId>
+    </dependency>
+
+    <dependency>
       <groupId>io.github.cdimascio</groupId>
       <artifactId>java-dotenv</artifactId>
       <version>5.2.2</version>
@@ -199,6 +209,30 @@
         <configuration>
           <argLine>-Dnet.bytebuddy.experimental=true</argLine>
         </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.flywaydb</groupId>
+        <artifactId>flyway-maven-plugin</artifactId>
+        <version>11.7.2</version>
+        <configuration>
+          <url>${DB_URL}</url>
+          <user>${DB_USER}</user>
+          <password>${DB_PASS}</password>
+          <locations>
+            <location>classpath:db/migration</location>
+          </locations>
+          <configFiles>
+            <configFile>src/main/resources/env.properties</configFile>
+          </configFiles>
+        </configuration>
+        <dependencies>
+          <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>42.7.2</version>
+          </dependency>
+        </dependencies>
       </plugin>
     </plugins>
   </build>

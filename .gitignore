@@ -4,12 +4,19 @@
 # Log file
 *.log
 
+# IDE files
 *.vscode
-
-# BlueJ files
-*.ctxt
-
 *.idea
+*.iws
+*.iml
+*.ipr
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
 
 # Mobile Tools for Java (J2ME)
 .mtj.tmp/
@@ -23,8 +30,72 @@
 *.tar.gz
 *.rar
 
-# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
+# virtual machine crash logs
 hs_err_pid*
 replay_pid*
 
+# Build directories
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+# NetBeans
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+# Help files
+HELP.md
+
+# Environment files
 .env
+.env.*
+!.env.example
+**/application.properties
+!**/application.properties.template
+**/env.properties
+!**/env.properties.template
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### VS Code ###
+.vscode/
+
+### Environment files ###
+.env
+.env.*
+!.env.example
+**/application.properties
+!**/application.properties.template
+**/env.properties
+!**/env.properties.template
+
