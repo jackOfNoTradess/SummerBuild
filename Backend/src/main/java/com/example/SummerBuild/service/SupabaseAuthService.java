@@ -57,7 +57,6 @@ public class SupabaseAuthService {
 
     ResponseEntity<String> response =
         restTemplate.exchange(signupUrl, HttpMethod.POST, request, String.class);
-
     // inserting into database table for unique role and gender
     ObjectMapper objectMapper = new ObjectMapper();
     JsonNode jsonNode;
@@ -69,7 +68,7 @@ public class SupabaseAuthService {
     }
     UUID uid = UUID.fromString(jsonNode.get("user").get("id").asText());
 
-    User user = User.builder().userUuid(uid).role(role).gender(gender).build();
+    User user = User.builder().id(uid).role(role).gender(gender).build();
     userRepository.save(user);
 
     return response;

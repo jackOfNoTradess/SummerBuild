@@ -25,7 +25,7 @@ class UserMapperTest {
   void testToDto() {
     UUID uuid = UUID.randomUUID();
     LocalDateTime now = LocalDateTime.now();
-    User user = User.builder().userUuid(uuid).gender(Gender.MALE).role(UserRole.ADMIN).build();
+    User user = User.builder().id(uuid).gender(Gender.MALE).role(UserRole.ADMIN).build();
     user.setId(uuid);
     user.setCreatedAt(now);
     user.setUpdatedAt(now);
@@ -33,7 +33,6 @@ class UserMapperTest {
 
     assertNotNull(dto);
     assertEquals(user.getId(), dto.getId());
-    assertEquals(user.getUserUuid(), dto.getUserUuid());
     assertEquals(user.getGender(), dto.getGender());
     assertEquals(user.getRole(), dto.getRole());
     assertEquals(user.getCreatedAt(), dto.getCreatedAt());
@@ -46,7 +45,6 @@ class UserMapperTest {
     LocalDateTime now = LocalDateTime.now();
     UserDto dto = new UserDto();
     dto.setId(UUID.randomUUID());
-    dto.setUserUuid(uuid);
     dto.setGender(Gender.FEMALE);
     dto.setRole(UserRole.USER);
     dto.setCreatedAt(now);
@@ -56,7 +54,6 @@ class UserMapperTest {
 
     assertNotNull(user);
     assertEquals(dto.getId(), user.getId());
-    assertEquals(dto.getUserUuid(), user.getUserUuid());
     assertEquals(dto.getGender(), user.getGender());
     assertEquals(dto.getRole(), user.getRole());
     assertEquals(dto.getCreatedAt(), user.getCreatedAt());
@@ -66,7 +63,7 @@ class UserMapperTest {
   @Test
   void testUpdateEntityFromDto() {
     User user =
-        User.builder().userUuid(UUID.randomUUID()).gender(Gender.MALE).role(UserRole.ADMIN).build();
+        User.builder().id(UUID.randomUUID()).gender(Gender.MALE).role(UserRole.ADMIN).build();
     user.setId(UUID.randomUUID());
     user.setUpdatedAt(LocalDateTime.now());
     UserDto dto = new UserDto();
@@ -85,13 +82,9 @@ class UserMapperTest {
   void testToDtoList() {
     List<User> users =
         List.of(
+            User.builder().id(UUID.randomUUID()).gender(Gender.MALE).role(UserRole.USER).build(),
             User.builder()
-                .userUuid(UUID.randomUUID())
-                .gender(Gender.MALE)
-                .role(UserRole.USER)
-                .build(),
-            User.builder()
-                .userUuid(UUID.randomUUID())
+                .id(UUID.randomUUID())
                 .gender(Gender.FEMALE)
                 .role(UserRole.ADMIN)
                 .build());
@@ -99,8 +92,8 @@ class UserMapperTest {
     List<UserDto> dtos = userMapper.toDtoList(users);
 
     assertEquals(2, dtos.size());
-    assertEquals(users.get(0).getUserUuid(), dtos.get(0).getUserUuid());
-    assertEquals(users.get(1).getUserUuid(), dtos.get(1).getUserUuid());
+    assertEquals(users.get(0).getId(), dtos.get(0).getId());
+    assertEquals(users.get(1).getId(), dtos.get(1).getId());
   }
 
   @Test
@@ -113,14 +106,13 @@ class UserMapperTest {
     List<User> users = userMapper.toEntityList(dtos);
 
     assertEquals(2, users.size());
-    assertEquals(dtos.get(0).getUserUuid(), users.get(0).getUserUuid());
-    assertEquals(dtos.get(1).getUserUuid(), users.get(1).getUserUuid());
+    assertEquals(dtos.get(0).getId(), users.get(0).getId());
+    assertEquals(dtos.get(1).getId(), users.get(1).getId());
   }
 
   private UserDto createUserDto(UUID id, UUID uuid, Gender gender, UserRole role) {
     UserDto dto = new UserDto();
     dto.setId(id);
-    dto.setUserUuid(uuid);
     dto.setGender(gender);
     dto.setRole(role);
     return dto;

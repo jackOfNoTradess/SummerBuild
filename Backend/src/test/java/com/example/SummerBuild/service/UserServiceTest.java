@@ -32,7 +32,7 @@ class UserServiceTest {
 
   private final UUID userId = UUID.randomUUID();
   private final User user =
-      User.builder().userUuid(userId).gender(Gender.MALE).role(UserRole.USER).build();
+      User.builder().id(userId).gender(Gender.MALE).role(UserRole.USER).build();
 
   private final UserDto userDto = new UserDto();
 
