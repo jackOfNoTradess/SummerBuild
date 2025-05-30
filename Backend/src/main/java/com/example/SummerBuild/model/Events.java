@@ -40,7 +40,9 @@ public class Events extends BaseEntity {
   @Column(name = "description", length = 255)
   private String description;
 
-  @Column(name = "tag", columnDefinition = "TEXT[]")
+  @ElementCollection
+  @CollectionTable(name = "event_tags", joinColumns = @JoinColumn(name = "event_id"))
+  @Column(name = "tag")
   private List<String> tags;
 
   // Using List instead of Set for simplicity with Hibernate

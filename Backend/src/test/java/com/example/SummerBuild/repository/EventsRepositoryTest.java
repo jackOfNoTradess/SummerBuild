@@ -12,11 +12,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.test.context.ActiveProfiles;
 
 @DataJpaTest
-@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
+@ActiveProfiles("test")
 class EventsRepositoryTest {
 
   @Autowired private EventsRepository eventsRepository;
@@ -171,14 +171,25 @@ class EventsRepositoryTest {
   @DisplayName("update - modifies existing event")
   void testUpdate() {
     Events eventToUpdate = eventsRepository.findById(event1.getId()).orElseThrow();
+    LocalDateTime originalCreatedAt = eventToUpdate.getCreatedAt();
+    LocalDateTime originalUpdatedAt = eventToUpdate.getUpdatedAt();
+
+    // Add a small delay to ensure timestamp difference
+    try {
+      Thread.sleep(10);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+    }
+
     eventToUpdate.setTitle("Updated Event 1");
     eventToUpdate.setCapacity(150);
 
-    Events updatedEvent = eventsRepository.save(eventToUpdate);
+    Events updatedEvent = eventsRepository.saveAndFlush(eventToUpdate);
 
     assertThat(updatedEvent.getTitle()).isEqualTo("Updated Event 1");
     assertThat(updatedEvent.getCapacity()).isEqualTo(150);
-    assertThat(updatedEvent.getUpdatedAt()).isAfter(updatedEvent.getCreatedAt());
+    assertThat(updatedEvent.getCreatedAt()).isEqualTo(originalCreatedAt);
+    assertThat(updatedEvent.getUpdatedAt()).isAfter(originalUpdatedAt);
   }
 
   @Test
