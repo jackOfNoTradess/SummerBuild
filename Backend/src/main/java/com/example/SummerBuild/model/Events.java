@@ -25,7 +25,6 @@ public class Events extends BaseEntity {
   @Column(name = "title", nullable = false, length = 255)
   private String title;
 
-  @ManyToOne(fetch = FetchType.LAZY)
   @Column(name = "host_id", nullable = false)
   private UUID host_uuid;
 

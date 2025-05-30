@@ -23,7 +23,6 @@ public class EventsDto extends BaseDto {
   @Size(max = 255, message = "Title must not exceed 255 characters")
   private String title;
 
-  @NotNull(message = "Host UUID is required")
   @JsonProperty(access = JsonProperty.Access.READ_ONLY)
   private UUID hostUuid;
 
