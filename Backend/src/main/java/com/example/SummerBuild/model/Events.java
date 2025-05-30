@@ -18,6 +18,8 @@ import lombok.Setter;
 @AllArgsConstructor
 @Builder
 public class Events extends BaseEntity {
+  //   @Id
+
   @Column(name = "title", nullable = false, length = 255)
   private String title;
 
