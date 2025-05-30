@@ -18,7 +18,9 @@ import lombok.Setter;
 @AllArgsConstructor
 @Builder
 public class Events extends BaseEntity {
-  //   @Id
+  @Id
+  @Column(name = "id", nullable = false, columnDefinition = "UUID")
+  private UUID id;
 
   @Column(name = "title", nullable = false, length = 255)
   private String title;

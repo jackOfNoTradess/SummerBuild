@@ -15,6 +15,10 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = true)
 public class EventsDto extends BaseDto {
 
+  // Server-managed field, ignored when client sends data but included in responses
+  @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+  private UUID id;
+
   @NotBlank(message = "Title is required")
   @Size(max = 255, message = "Title must not exceed 255 characters")
   private String title;
