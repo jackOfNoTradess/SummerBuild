@@ -17,7 +17,6 @@ public class UserMapper implements GenericMapper<User, UserDto> {
     dto.setId(entity.getId());
     dto.setRole(entity.getRole());
     dto.setGender(entity.getGender());
-    dto.setUserUuid(entity.getUserUuid());
     dto.setCreatedAt(entity.getCreatedAt());
     dto.setUpdatedAt(entity.getUpdatedAt());
     return dto;
@@ -33,7 +32,6 @@ public class UserMapper implements GenericMapper<User, UserDto> {
     entity.setId(dto.getId());
     entity.setRole(dto.getRole());
     entity.setGender(dto.getGender());
-    entity.setUserUuid(dto.getUserUuid());
     entity.setCreatedAt(dto.getCreatedAt());
     entity.setUpdatedAt(dto.getUpdatedAt());
     return entity;

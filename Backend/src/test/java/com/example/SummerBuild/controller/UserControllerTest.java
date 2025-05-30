@@ -163,7 +163,7 @@ class UserControllerTest {
   @DisplayName("GET /api/users/role/{role} - happy flow")
   void whenGetUsersByRole_happyFlow_returns200() throws Exception {
     UserDto dto = new UserDto();
-    dto.setUserUuid(UUID.randomUUID());
+    dto.setId(UUID.randomUUID());
     dto.setRole(UserRole.ADMIN);
     given(userService.findByRole(UserRole.ADMIN)).willReturn(List.of(dto));
 

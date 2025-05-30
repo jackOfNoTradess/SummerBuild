@@ -22,18 +22,11 @@ public class UserRepositoryTest {
 
   @BeforeEach
   void setUp() {
-    user1 =
-        User.builder().userUuid(UUID.randomUUID()).role(UserRole.ADMIN).gender(Gender.MALE).build();
+    user1 = User.builder().id(UUID.randomUUID()).role(UserRole.ADMIN).gender(Gender.MALE).build();
 
-    user2 =
-        User.builder()
-            .userUuid(UUID.randomUUID())
-            .role(UserRole.USER)
-            .gender(Gender.FEMALE)
-            .build();
+    user2 = User.builder().id(UUID.randomUUID()).role(UserRole.USER).gender(Gender.FEMALE).build();
 
-    user3 =
-        User.builder().userUuid(UUID.randomUUID()).role(UserRole.USER).gender(Gender.MALE).build();
+    user3 = User.builder().id(UUID.randomUUID()).role(UserRole.USER).gender(Gender.MALE).build();
 
     userRepository.saveAll(List.of(user1, user2, user3));
   }
