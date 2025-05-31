@@ -1,5 +1,7 @@
 # SummerBuild
 
+[![Java CI with Maven](https://github.com/[YOUR_USERNAME]/SummerBuild/actions/workflows/ci.yml/badge.svg)](https://github.com/[YOUR_USERNAME]/SummerBuild/actions/workflows/ci.yml)
+
 ## api docs
 http://localhost:8080/swagger-ui/index.html#/
 
