@@ -16,13 +16,30 @@ mvn flyway:clean      # Drop all objects
 ### 🚀 `mvn flyway:migrate`
 
 **Purpose:**  
-Applies all pending migration scripts (e.g., `V1__...`, `V2__...`) to the database.
+Applies all pending migration scripts to the database.
 
 **When to use:**
-- After adding a new Flyway migration SQL file
+- After adding a new migration SQL file
 - When syncing your local DB schema with the latest version
 - On application startup (if auto-run is configured in Spring Boot)
 
 **Command:**
 ```bash
 mvn flyway:migrate
+
+```
+
+### ⚠️ `mvn flyway:clean` — Use with Caution
+
+**Purpose:**  
+This command **drops all database objects** (tables, views, constraints, etc.) in the configured schema. It resets the entire schema.
+
+---
+
+**🕵️‍♂️ When to Use**
+
+Only use `flyway:clean` in **development or testing environments**:
+
+- To **wipe** the database and start from scratch
+- When schema changes or migrations are broken and unrecoverable
+- Before re-running a full migration set for a clean slate

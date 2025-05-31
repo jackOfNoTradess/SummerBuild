@@ -1,0 +1,124 @@
+name: "Stage 1: Basic CI"
+
+# Triggers
+on:
+  pull_request: 
+    # Trigger on PR to main
+    branches: [ main ]  
+  # Add a manual "Run Workflow" button in Github CI
+  workflow_dispatch: 
+
+# Permissions
+permissions:
+  contents: read # Permission to read repo
+  checks: write # Permission to write test reports
+  pull-requests: write # Permissions to comment on PRs
+
+# Global environment variables
+env:
+  JAVA_VERSION: '21'
+
+
+jobs:
+  basic-ci:
+    name: "Code Quality - Build - Unit Tests"
+    runs-on: ubuntu-latest
+
+    # Job ouytputs to be passed to other workflows like Stage 2,etc
+    outputs:
+      build-success: $ {{ steps.test.outcome == 'success'}}
+      artifact-name: app-jar-${{ github.sha }}                # Name of JAR artifact
+      commit-sha: ${{ github.sha }}                           # Git commit hash
+      branch-ref: ${{ github.ref }}                           # Git branch reference
+
+    # Job level settings
+    deafults:
+      runs:
+        working-directory: Backend # All commands run in Backend folder
+    
+    steps:
+      # Get Code
+      name: 'Getting Code'
+      uses: actions/checkout@v4 # Download repo to the runner
+
+      # Set up Java environment
+      name: "Set up JDK 21"
+      uses: actions/setup-java@v4
+      with:
+        java-version: ${{ env.JAVA_VERSION }} # Get from the above defined Java version
+        distribution: 'temurin'
+        cache: maven # Caching maven dependencies for faster builds
+
+      # Code Formatting Check
+      name: "Check code formatting"
+      # If check fails, entire workflow stops here
+      run: |
+        echo "Checking code format..."
+        mvn spotless:check
+        echo "Code formatting passed!"
+      
+      # Build
+      name: "Build"
+      run: |
+        echo "Compiling Application"
+        mvn clean compile
+        echo "Compilation Successful"
+
+      # Unit Tests
+      name: "Unit Testing"
+      id: tests # Step ID
+      run: |
+        echo "Running unit tests"
+        mvn -B test
+        echo "Unit Tests Completed!"
+      
+      # Publish test results
+      name: "Test Results"
+      uses: mikepenz/action-junit-report@v4
+      if: always() # Run even if tests failed (for debugging)
+      with:
+        eport_paths: 'Backend/**/target/surefire-reports/TEST-*.xml'  # Path to store test reports
+        check_name: "Stage 1 - Unit Test Results"     # Name in GitHub UI
+        summary: "Unit test results from Stage 1 CI pipeline"  # Description
+
+      # Trigger next stage
+      name: "Trigger Stage 2 - Integration Tests"
+      # Only trigger if stage 1 passed
+      if: success() && github.event_name != 'pull_request'
+      uses: peter-evans/repository-dispatch@v3  # Action for triggering other workflows
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}     # Authentication token
+        event-type: stage1-complete             # Custom event name that Stage 2 listens for
+        client-payload: |                      # Data to send to Stage 2
+          {
+            "sha": "${{ github.sha }}",                    # Which commit
+            "ref": "${{ github.ref }}",                    # Which branch
+            "stage1_run_id": "${{ github.run_id }}"       # This workflow run ID
+          }
+      
+      # Summary Report
+      name: "Stage 1 Summary Report"
+      if: always()
+      run: |
+        echo "=========================="
+        echo "     STAGE 1 COMPLETE     "
+        echo "=========================="
+      
+      # Check if the overall job succeeded or failed
+        if [[ "${{ job.status }}" == "success" ]]; then
+          echo "Code formatting: PASSED"
+          echo "Compilation: PASSED"
+          echo "Unit tests: PASSED"
+
+        if [[ "${{ github.event_name }}" != "pull_request" ]]; then
+            echo "Triggering Stage 2..."
+          else
+            echo "Stage 2 Trigger Halted - PR Detected"
+          fi
+        else
+          echo "Stage 1 FAILED - Pipeline Stopped"
+          echo "Check the logs above for details"
+        fi
+        echo "=========================="
+
+
