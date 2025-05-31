@@ -2,9 +2,11 @@ name: "Stage 1: Basic CI"
 
 # Triggers
 on:
+  push:
+    branches: [T-030, main]
   pull_request:
     # Trigger on PR to main
-    branches: [main, T-030]
+    branches: [main]
   # Add a manual "Run Workflow" button in Github CI
   workflow_dispatch: 
 
