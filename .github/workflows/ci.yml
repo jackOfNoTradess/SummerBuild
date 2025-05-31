@@ -97,20 +97,19 @@ jobs:
           }
       
       # Summary Report
-      name: "Stage 1 Summary Report"
+      name: Stage 1 Summary Report
       if: always()
       run: |
         echo "=========================="
         echo "     STAGE 1 COMPLETE     "
         echo "=========================="
-      
-      # Check if the overall job succeeded or failed
-        if [[ "${{ job.status }}" == "success" ]]; then
+
+        if [ "$GITHUB_JOB_STATUS" = "success" ]; then
           echo "Code formatting: PASSED"
           echo "Compilation: PASSED"
           echo "Unit tests: PASSED"
 
-        if [[ "${{ github.event_name }}" != "pull_request" ]]; then
+          if [ "$GITHUB_EVENT_NAME" != "pull_request" ]; then
             echo "Triggering Stage 2..."
           else
             echo "Stage 2 Trigger Halted - PR Detected"
@@ -119,6 +118,8 @@ jobs:
           echo "Stage 1 FAILED - Pipeline Stopped"
           echo "Check the logs above for details"
         fi
+
         echo "=========================="
+
 
 
