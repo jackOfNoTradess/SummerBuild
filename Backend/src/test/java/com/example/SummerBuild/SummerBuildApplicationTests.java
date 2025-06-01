@@ -2,14 +2,10 @@ package com.example.SummerBuild;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.TestPropertySource;
 
-@SpringBootTest(
-    properties = {
-      "supabase.jwtSecret=c3VwZXItc2VjcmV0LWp3dC10b2tlbi13aXRoLWF0LWxlYXN0LTMyLWNoYXJhY3RlcnMtbG9uZw==",
-      "supabase.auth.url=http://localhost:54321",
-      "supabase.anonKey=test-anon-key",
-      "supabase.serviceKey=test-service-key"
-    })
+@SpringBootTest
+@TestPropertySource(locations = "classpath:application-test.properties")
 public class SummerBuildApplicationTests {
   @Test
   public void contextLoads() {}

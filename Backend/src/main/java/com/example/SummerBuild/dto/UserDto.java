@@ -4,7 +4,6 @@ import com.example.SummerBuild.model.Gender;
 import com.example.SummerBuild.model.UserRole;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotNull;
-import java.time.LocalDateTime;
 import java.util.UUID;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -21,12 +20,4 @@ public class UserDto extends BaseDto {
 
   @NotNull(message = "Gender is required")
   private Gender gender;
-
-  // Server-managed field, ignored when client sends data but included in responses
-  @JsonProperty(access = JsonProperty.Access.READ_ONLY)
-  private LocalDateTime createdAt;
-
-  // Server-managed field, ignored when client sends data but included in responses
-  @JsonProperty(access = JsonProperty.Access.READ_ONLY)
-  private LocalDateTime updatedAt;
 }
