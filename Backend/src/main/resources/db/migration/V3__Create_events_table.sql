@@ -13,10 +13,10 @@ CREATE TABLE events (
 );
 
 -- Create index on host_id for better query performance
-CREATE INDEX idx_events_host_id ON events(host_id);
+-- CREATE INDEX idx_events_host_id ON events(host_id);
 
--- Create index on start_time for date-based queries
-CREATE INDEX idx_events_start_time ON events(start_time);
+-- -- Create index on start_time for date-based queries
+-- CREATE INDEX idx_events_start_time ON events(start_time);
 
--- Create index on end_time for date-based queries
-CREATE INDEX idx_events_end_time ON events(end_time);
+-- -- Create index on end_time for date-based queries
+-- CREATE INDEX idx_events_end_time ON events(end_time);
