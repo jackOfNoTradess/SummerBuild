@@ -67,6 +67,32 @@ jobs:
       db-port: 5432
 
     steps:
+      - name: "Getting Code"
+        uses: actions/checkout@v4
+        with:
+          # References the correct commit that passes Stage 1
+          ref: ${{ github.event.client_payload.sha || github.sha }}
+
+      - name: "Debug Repository Structure"
+        run: |
+          echo "Current working directory:"
+          pwd
+          echo ""
+          echo "Contents of current directory:"
+          ls -la
+          echo ""
+          echo "Looking for Backend folder specifically:"
+          if [ -d "Backend" ]; then
+            echo "✓ Backend folder exists"
+            echo "Contents of Backend folder:"
+            ls -la Backend/
+          else
+            echo "✗ Backend folder NOT found"
+            echo "Searching for similar folders:"
+            find . -maxdepth 2 -type d -iname "*backend*" 2>/dev/null || echo "No backend-related folders found"
+          fi
+        working-directory: .
+
       - name: "Debug Environment Variables"
         run: |
           echo "DB_NAME: '${{ env.DB_NAME }}'"
@@ -90,12 +116,6 @@ jobs:
           echo "Source Ref: ${{ github.event.client_payload.ref }}"
           echo "Stage 1 Run ID: ${{ github.event.client_payload.stage1_run_id }}"
           echo "============================="
-    
-      - name: "Getting Code"
-        uses: actions/checkout@v4
-        with:
-          # References the correct commit that passes Stage 1
-          ref: ${{ github.event.client_payload.sha || github.sha }}
 
       - name: "Set up JDK 21"
         uses: actions/setup-java@v4
