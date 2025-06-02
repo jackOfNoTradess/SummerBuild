@@ -34,7 +34,7 @@ env:
   DB_PASSWORD: ${{secrets.POSTGRES_PASSWORD}}
 
 jobs:
-  integraiton-tests:
+  integration-tests:
     name: "Integration Tests"
     runs-on: ubuntu-latest
 
