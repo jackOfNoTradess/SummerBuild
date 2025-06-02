@@ -70,10 +70,10 @@ jobs:
           echo "============================="
     
       - name: "Getting Code"
-          uses: actions/checkout@v4
-          with:
-            # References the correct commit that passes Stage 1
-            ref: ${{ github.event.client_payload.sha || github.sha }}
+        uses: actions/checkout@v4
+        with:
+          # References the correct commit that passes Stage 1
+          ref: ${{ github.event.client_payload.sha || github.sha }}
 
       - name: "Set up JDK 21"
         uses: actions/setup-java@v4
@@ -105,98 +105,98 @@ jobs:
           PGPASSWORD: ${{ env.DB_PASSWORD }}
 
       - name: "Verify integration environment"
-          run: |
-            echo "Verifying integration environment setup..."
-            java -version
-            mvn -version
-            echo "Integration environment ready!"
-            echo "Note: Code compilation already verified in Stage 1"x
+        run: |
+          echo "Verifying integration environment setup..."
+          java -version
+          mvn -version
+          echo "Integration environment ready!"
+          echo "Note: Code compilation already verified in Stage 1"
 
-        - name: "Verify integration profile configuration"
-          run: |
-            echo "Checking Spring integration profile configuration..."
-            # Check if integration profile files exist
-            if [ -f "src/main/resources/application-integration.yml" ] || [ -f "src/main/resources/application-integration.properties" ]; then
-              echo "Integration profile configuration found!"
-            else
-              echo "ERROR: No integration profile configuration found"
-              echo "Expected: application-integration.yml or application-integration.properties"
-              echo "This may need to be created for integration tests"
-            fi
+      - name: "Verify integration profile configuration"
+        run: |
+          echo "Checking Spring integration profile configuration..."
+          # Check if integration profile files exist
+          if [ -f "src/main/resources/application-integration.yml" ] || [ -f "src/main/resources/application-integration.properties" ]; then
+            echo "Integration profile configuration found!"
+          else
+            echo "ERROR: No integration profile configuration found"
+            echo "Expected: application-integration.yml or application-integration.properties"
+            echo "This may need to be created for integration tests"
+          fi
 
-        - name: "Test database connectivity from application context"
-          id: verify-infrastructure
-          run: |
-            echo "Testing database connectivity with application configuration..."
-            
-            # Create a temporary test to verify DB connectivity
-            cat > src/test/java/TestDatabaseConnectivity.java << 'EOF'
-            import java.sql.Connection;
-            import java.sql.DriverManager;
-            import java.sql.ResultSet;
-            import java.sql.Statement;
-            
-            public class TestDatabaseConnectivity {
-                public static void main(String[] args) {
-                    try {
-                        String url = "jdbc:postgresql://localhost:5432/" + System.getenv("DB_NAME");
-                        String user = System.getenv("DB_USER");
-                        String password = System.getenv("DB_PASSWORD");
-                        
-                        Connection conn = DriverManager.getConnection(url, user, password);
-                        Statement stmt = conn.createStatement();
-                        ResultSet rs = stmt.executeQuery("SELECT 1 as test");
-                        
-                        if (rs.next()) {
-                            System.out.println("Database connectivity test - PASSED");
-                        }
-                        
-                        rs.close();
-                        stmt.close();
-                        conn.close();
-                    } catch (Exception e) {
-                        System.out.println("Database connectivity test - FAILED: " + e.getMessage());
-                        System.exit(1);
-                    }
-                }
-            }
-            EOF
-            
-            # Compile and run the connectivity test
-            javac -cp "$(mvn dependency:build-classpath -q -Dmdep.outputFile=/dev/stdout):." src/test/java/TestDatabaseConnectivity.java
-            java -cp "$(mvn dependency:build-classpath -q -Dmdep.outputFile=/dev/stdout):src/test/java" TestDatabaseConnectivity
-            
-            echo "Application-level database connected!"
-          env:
-            DB_NAME: ${{ env.DB_NAME }}
-            DB_USER: ${{ env.DB_USER }}
-            DB_PASSWORD: ${{ env.DB_PASSWORD }}
+      - name: "Test database connectivity from application context"
+        id: verify-infrastructure
+        run: |
+          echo "Testing database connectivity with application configuration..."
+          
+          # Create a temporary test to verify DB connectivity
+          cat > src/test/java/TestDatabaseConnectivity.java << 'EOF'
+          import java.sql.Connection;
+          import java.sql.DriverManager;
+          import java.sql.ResultSet;
+          import java.sql.Statement;
+          
+          public class TestDatabaseConnectivity {
+              public static void main(String[] args) {
+                  try {
+                      String url = "jdbc:postgresql://localhost:5432/" + System.getenv("DB_NAME");
+                      String user = System.getenv("DB_USER");
+                      String password = System.getenv("DB_PASSWORD");
+                      
+                      Connection conn = DriverManager.getConnection(url, user, password);
+                      Statement stmt = conn.createStatement();
+                      ResultSet rs = stmt.executeQuery("SELECT 1 as test");
+                      
+                      if (rs.next()) {
+                          System.out.println("Database connectivity test - PASSED");
+                      }
+                      
+                      rs.close();
+                      stmt.close();
+                      conn.close();
+                  } catch (Exception e) {
+                      System.out.println("Database connectivity test - FAILED: " + e.getMessage());
+                      System.exit(1);
+                  }
+              }
+          }
+          EOF
+          
+          # Compile and run the connectivity test
+          javac -cp "$(mvn dependency:build-classpath -q -Dmdep.outputFile=/dev/stdout):." src/test/java/TestDatabaseConnectivity.java
+          java -cp "$(mvn dependency:build-classpath -q -Dmdep.outputFile=/dev/stdout):src/test/java" TestDatabaseConnectivity
+          
+          echo "Application-level database connected!"
+        env:
+          DB_NAME: ${{ env.DB_NAME }}
+          DB_USER: ${{ env.DB_USER }}
+          DB_PASSWORD: ${{ env.DB_PASSWORD }}
 
-        - name: "Infrastructure readiness check"
-          run: |
-            echo "Performing final infrastructure readiness check..."
-            
-            # Check PostgreSQL service health
-            pg_isready -h localhost -p 5432 -U $DB_USER
-            
-            # Check disk space
-            df -h
-            
-            # Check memory
-            free -h
-            
-            # Check if Maven dependencies are cached
-            if [ -d "$HOME/.m2/repository" ]; then
-              echo " Maven cache is available"
-            else
-              echo "Maven cache not found - first run may be slower"
-            fi
-            
-            echo "Infrastructure readiness check completed!"
-          env:
-            PGPASSWORD: ${{ env.DB_PASSWORD }}
+      - name: "Infrastructure readiness check"
+        run: |
+          echo "Performing final infrastructure readiness check..."
+          
+          # Check PostgreSQL service health
+          pg_isready -h localhost -p 5432 -U $DB_USER
+          
+          # Check disk space
+          df -h
+          
+          # Check memory
+          free -h
+          
+          # Check if Maven dependencies are cached
+          if [ -d "$HOME/.m2/repository" ]; then
+            echo " Maven cache is available"
+          else
+            echo "Maven cache not found - first run may be slower"
+          fi
+          
+          echo "Infrastructure readiness check completed!"
+        env:
+          PGPASSWORD: ${{ env.DB_PASSWORD }}
 
-        - name: "Infrastructure Setup Summary"
+      - name: "Infrastructure Setup Summary"
         run: |
           echo "=============================================="
           echo "        INFRASTRUCTURE SETUP COMPLETE         "
