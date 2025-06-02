@@ -1,0 +1,197 @@
+name: Stage 2: Integration
+
+on:
+  push:
+    branches: [T-033, main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# Triggered upon successful completion of Stage 1
+repository_dispatch:
+  types: [stage1-complete]
+
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
+
+env:
+  JAVA_VERSION: '21'
+  DB_NAME: ${{ secrets.POSTGRES_DB || 'testdb' }}
+  DB_USER: ${{ secrets.POSTGRES_USER || 'testuser' }}
+  DB_PASSWORD: ${{ secrets.POSTGRES_PASSWORD || 'testpass' }}
+
+jobs:
+  integraiton-tests:
+    name: "Integration Tests"
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: Backend
+
+    # PostgreSQL service container for integration testing
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: ${{ env.DB_NAME }}
+          POSTGRES_USER: ${{ env.DB_USER }}
+          POSTGRES_PASSWORD: ${{ env.DB_PASSWORD }}
+        ports:
+          - 5432:5432
+        # Checks if the DB is ready before job runs
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    outputs:
+      # Informs that infrastructure is ready if verify-infrastructure succeeds
+      infrastructure-ready: ${{ steps.wait-for-db.outputs.ready }} 
+      db-host: localhost
+      db-port: 5432
+      db-name: ${{ env.DB_NAME }}
+      db-user: ${{ env.DB_USER }}
+
+    steps:
+      - name: "Stage 1 Information"
+        if: github.event_name == 'repository_dispatch'
+        run: |
+          echo "============================="
+          echo "  STAGE 2: INTEGRATION TESTS "
+          echo "============================="
+          echo "Triggered by Stage 1 completion"
+          echo "Source SHA: ${{ github.event.client_payload.sha }}"
+          echo "Source Ref: ${{ github.event.client_payload.ref }}"
+          echo "Stage 1 Run ID: ${{ github.event.client_payload.stage1_run_id }}"
+          echo "============================="
+    
+      - name: "Getting Code"
+          uses: actions/checkout@v4
+          with:
+            # References the correct commit that passes Stage 1
+            ref: ${{ github.event.client_payload.sha || github.sha }}
+
+      - name: "Set up JDK 21"
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: maven
+
+      - name: "Wait for PostgreSQL to be ready"
+        run: |
+          echo "Waiting for PostgreSQL service to be ready..."
+          for i in {1..30}; do
+            if pg_isready -h localhost -p 5432 -U $DB_USER; then
+              echo "PostgreSQL is ready!"
+              break
+            fi
+            echo "Waiting for PostgreSQL... (attempt $i/30)"
+            sleep 2
+          done
+        env:
+          PGPASSWORD: ${{env.DB_PASSWORD}}
+
+      - name: "Verify database connection"
+        run: |
+          echo "Testing database connection..."
+          psql -h localhost -p 5432 -U $DB_USER -d $DB_NAME -c "SELECT version();"
+          echo "Database connected!"
+        env:
+          PGPASSWORD: ${{ env.DB_PASSWORD }}
+
+      - name: "Verify integration environment"
+          run: |
+            echo "Verifying integration environment setup..."
+            java -version
+            mvn -version
+            echo "Integration environment ready!"
+            echo "Note: Code compilation already verified in Stage 1"x
+
+        - name: "Verify integration profile configuration"
+          run: |
+            echo "Checking Spring integration profile configuration..."
+            # Check if integration profile files exist
+            if [ -f "src/main/resources/application-integration.yml" ] || [ -f "src/main/resources/application-integration.properties" ]; then
+              echo "Integration profile configuration found!"
+            else
+              echo "ERROR: No integration profile configuration found"
+              echo "Expected: application-integration.yml or application-integration.properties"
+              echo "This may need to be created for integration tests"
+            fi
+
+        - name: "Test database connectivity from application context"
+          id: verify-infrastructure
+          run: |
+            echo "Testing database connectivity with application configuration..."
+            
+            # Create a temporary test to verify DB connectivity
+            cat > src/test/java/TestDatabaseConnectivity.java << 'EOF'
+            import java.sql.Connection;
+            import java.sql.DriverManager;
+            import java.sql.ResultSet;
+            import java.sql.Statement;
+            
+            public class TestDatabaseConnectivity {
+                public static void main(String[] args) {
+                    try {
+                        String url = "jdbc:postgresql://localhost:5432/" + System.getenv("DB_NAME");
+                        String user = System.getenv("DB_USER");
+                        String password = System.getenv("DB_PASSWORD");
+                        
+                        Connection conn = DriverManager.getConnection(url, user, password);
+                        Statement stmt = conn.createStatement();
+                        ResultSet rs = stmt.executeQuery("SELECT 1 as test");
+                        
+                        if (rs.next()) {
+                            System.out.println("Database connectivity test PASSED");
+                        }
+                        
+                        rs.close();
+                        stmt.close();
+                        conn.close();
+                    } catch (Exception e) {
+                        System.out.println("Database connectivity test FAILED: " + e.getMessage());
+                        System.exit(1);
+                    }
+                }
+            }
+            EOF
+            
+            # Compile and run the connectivity test
+            javac -cp "$(mvn dependency:build-classpath -q -Dmdep.outputFile=/dev/stdout):." src/test/java/TestDatabaseConnectivity.java
+            java -cp "$(mvn dependency:build-classpath -q -Dmdep.outputFile=/dev/stdout):src/test/java" TestDatabaseConnectivity
+            
+            echo "Application-level database connected!"
+          env:
+            DB_NAME: ${{ env.DB_NAME }}
+            DB_USER: ${{ env.DB_USER }}
+            DB_PASSWORD: ${{ env.DB_PASSWORD }}
+
+        - name: "Infrastructure readiness check"
+          run: |
+            echo "Performing final infrastructure readiness check..."
+            
+            # Check PostgreSQL service health
+            pg_isready -h localhost -p 5432 -U $DB_USER
+            
+            # Check disk space
+            df -h
+            
+            # Check memory
+            free -h
+            
+            # Check if Maven dependencies are cached
+            if [ -d "$HOME/.m2/repository" ]; then
+              echo "✅ Maven cache is available"
+            else
+              echo "⚠️  Maven cache not found - first run may be slower"
+            fi
+            
+            echo "✅ Infrastructure readiness check completed!"
+          env:
+            PGPASSWORD: ${{ env.DB_PASSWORD }}
