@@ -29,13 +29,12 @@ permissions:
 
 env:
   JAVA_VERSION: '21'
-  # Use hardcoded values for integration testing - no secrets needed
-  DB_NAME: testdb
-  DB_USER: testuser
-  DB_PASSWORD: testpassword
+  DB_NAME: ${{ secrets.POSTGRES_DB }}
+  DB_USER: ${{ secrets.POSTGRES_USER }}
+  DB_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
 
 jobs:
-  integration-tests:  # Fixed typo: was "integraiton-tests"
+  integration-tests: 
     name: "Integration Tests"
     runs-on: ubuntu-latest
 
