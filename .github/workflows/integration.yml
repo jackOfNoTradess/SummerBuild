@@ -6,10 +6,9 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
-
-# Triggered upon successful completion of Stage 1
-repository_dispatch:
-  types: [stage1-complete]
+  # Triggered upon successful completion of Stage 1
+  repository_dispatch:
+    types: [stage1-complete]
 
 permissions:
   contents: read
