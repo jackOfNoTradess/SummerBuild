@@ -21,6 +21,13 @@ on:
         description: 'Stage 1 run ID'
         required: true
         type: string
+    secrets:
+      POSTGRES_DB:
+          required: true
+      POSTGRES_USER:
+          required: true
+      POSTGRES_PASSWORD:
+         required: true
 
 permissions:
   contents: read
