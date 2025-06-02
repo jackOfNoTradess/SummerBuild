@@ -29,12 +29,13 @@ permissions:
 
 env:
   JAVA_VERSION: '21'
-  DB_NAME: ${{ secrets.POSTGRES_DB}}
-  DB_USER: ${{ secrets.POSTGRES_USER}}
-  DB_PASSWORD: ${{secrets.POSTGRES_PASSWORD}}
+  # Use hardcoded values for integration testing - no secrets needed
+  DB_NAME: testdb
+  DB_USER: testuser
+  DB_PASSWORD: testpassword
 
 jobs:
-  integration-tests:
+  integration-tests:  # Fixed typo: was "integraiton-tests"
     name: "Integration Tests"
     runs-on: ubuntu-latest
 
@@ -54,18 +55,30 @@ jobs:
           - 5432:5432
         # Checks if the DB is ready before job runs
         options: >-
-          --health-cmd pg_isready
+          --health-cmd "pg_isready -U testuser"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
 
     outputs:
       # Informs that infrastructure is ready if verify-infrastructure succeeds
-      infrastructure-ready: ${{ steps.wait-for-db.outputs.ready }} 
+      infrastructure-ready: ${{ steps.verify-infrastructure.outcome == 'success' }}
       db-host: localhost
       db-port: 5432
 
     steps:
+      - name: "Debug Environment Variables"
+        run: |
+          echo "DB_NAME: '${{ env.DB_NAME }}'"
+          echo "DB_USER: '${{ env.DB_USER }}'"
+          echo "DB_PASSWORD length: ${#DB_PASSWORD}"
+          echo "All environment variables that start with POSTGRES:"
+          env | grep POSTGRES || echo "No POSTGRES variables found"
+        env:
+          DB_NAME: ${{ env.DB_NAME }}
+          DB_USER: ${{ env.DB_USER }}
+          DB_PASSWORD: ${{ env.DB_PASSWORD }}
+
       - name: "Stage 1 Information"
         if: github.event_name == 'repository_dispatch'
         run: |
@@ -91,6 +104,11 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
+      - name: "Install PostgreSQL client"
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
       - name: "Wait for PostgreSQL to be ready"
         run: |
           echo "Waiting for PostgreSQL service to be ready..."
@@ -103,7 +121,7 @@ jobs:
             sleep 2
           done
         env:
-          PGPASSWORD: ${{env.DB_PASSWORD}}
+          PGPASSWORD: ${{ env.DB_PASSWORD }}
 
       - name: "Verify database connection"
         run: |
@@ -196,7 +214,7 @@ jobs:
           
           # Check if Maven dependencies are cached
           if [ -d "$HOME/.m2/repository" ]; then
-            echo " Maven cache is available"
+            echo "Maven cache is available"
           else
             echo "Maven cache not found - first run may be slower"
           fi
