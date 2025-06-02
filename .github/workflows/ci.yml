@@ -84,16 +84,11 @@ jobs:
       # Trigger next stage
       - name: "Trigger Stage 2 - Integration Tests"
         if: success() && github.event_name != 'pull_request'
-        uses: peter-evans/repository-dispatch@v3
+        uses: ./.github/workflows/integration.yml
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          event-type: stage1-complete
-          client-payload: |
-            {
-              "sha": "${{ github.sha }}",
-              "ref": "${{ github.ref }}",
-              "stage1_run_id": "${{ github.run_id }}"
-            }
+          sha: ${{ github.sha }}
+          ref: ${{ github.ref }}
+          stage1_run_id: ${{ github.run_id }}
       
       # Summary Report
       - name: "Stage 1 Summary Report"

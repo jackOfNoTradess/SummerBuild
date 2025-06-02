@@ -6,9 +6,21 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
-  # Triggered upon successful completion of Stage 1
-  repository_dispatch:
-    types: [stage1-complete]
+  # Called by Stage 1 CI workflow completion
+  workflow_call:
+    inputs:
+      sha:
+        description: 'Commit SHA from Stage 1'
+        required: true
+        type: string
+      ref:
+        description: 'Git ref from Stage 1'
+        required: true
+        type: string
+      stage1_run_id:
+        description: 'Stage 1 run ID'
+        required: true
+        type: string
 
 permissions:
   contents: read
