@@ -17,9 +17,9 @@ permissions:
 
 env:
   JAVA_VERSION: '21'
-  DB_NAME: ${{ secrets.POSTGRES_DB || 'testdb' }}
-  DB_USER: ${{ secrets.POSTGRES_USER || 'testuser' }}
-  DB_PASSWORD: ${{ secrets.POSTGRES_PASSWORD || 'testpass' }}
+  DB_NAME: ${{ secrets.POSTGRES_DB}}
+  DB_USER: ${{ secrets.POSTGRES_USER}}
+  DB_PASSWORD: ${{secrets.POSTGRES_PASSWORD}}
 
 jobs:
   integraiton-tests:
@@ -52,8 +52,6 @@ jobs:
       infrastructure-ready: ${{ steps.wait-for-db.outputs.ready }} 
       db-host: localhost
       db-port: 5432
-      db-name: ${{ env.DB_NAME }}
-      db-user: ${{ env.DB_USER }}
 
     steps:
       - name: "Stage 1 Information"
