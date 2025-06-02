@@ -109,17 +109,9 @@ jobs:
   call-stage2:
     name: "Trigger Stage 2"
     needs: basic-ci
-    runs-on: ubuntu-latest
     if: needs.basic-ci.outputs.build-success == 'true' && github.event_name != 'pull_request'
-
-    steps:
-      # Optional steps to run before calling the workflow
-      - name: "Log Trigger Info"
-        run: |
-          echo "Stage 1 completed successfully"
-          echo "Triggering Stage 2: Integration Tests"
-
-    # Call the reusable workflow (NOT inside the steps block)
+    
+    # This calls the integration workflow
     uses: ./.github/workflows/integration.yml
     with:
       sha: ${{ github.sha }}
