@@ -59,9 +59,9 @@ jobs:
           POSTGRES_PASSWORD: ${{ env.DB_PASSWORD }}
         ports:
           - 5432:5432
-        # Checks if the DB is ready before job runs
+        # Fixed health check to use correct user
         options: >-
-          --health-cmd "pg_isready -U testuser"
+          --health-cmd "pg_isready -U ${{ env.DB_USER }}"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -165,16 +165,15 @@ jobs:
           echo "Integration environment ready!"
           echo "Note: Code compilation already verified in Stage 1"
 
-      - name: "Verify integration profile configuration"
+      - name: "Check test configuration files"
         run: |
-          echo "Checking Spring integration profile configuration..."
-          # Check if integration profile files exist
-          if [ -f "src/main/resources/application-integration.yml" ] || [ -f "src/main/resources/application-integration.properties" ]; then
-            echo "Integration profile configuration found!"
+          echo "Checking for test configuration files..."
+          if [ -f "src/main/resources/application-test.properties" ]; then
+            echo "✓ application-test.properties found"
+          elif [ -f "src/test/resources/application-test.properties" ]; then
+            echo "✓ application-test.properties found in test resources"
           else
-            echo "ERROR: No integration profile configuration found"
-            echo "Expected: application-integration.yml or application-integration.properties"
-            echo "This may need to be created for integration tests"
+            echo "⚠ application-test.properties not found - will be created"
           fi
 
       - name: "Test database connectivity from application context"
@@ -260,7 +259,7 @@ jobs:
           echo "Java Environment: JDK 21"
           echo "Maven Setup: Dependencies cached"
           echo "Application Compilation: Successful"
-          echo "Spring Boot Context: Ready for integration profile"
+          echo "Spring Boot Context: Ready for test profile"
           echo "Infrastructure Health: All systems operational"
           echo ""
           echo "Infrastructure Details:"
@@ -268,15 +267,15 @@ jobs:
           echo "  - Database Port: 5432"
           echo "  - Database Name: $DB_NAME"
           echo "  - Database User: $DB_USER"
-          echo "  - Spring Profile: integration to be used"
+          echo "  - Spring Profile: test to be used"
           echo ""
           echo "=============================================="
 
   integration-tests:
       name: "Integration Tests"
       runs-on: ubuntu-latest
-      needs: infrastructure-setup
-      if: needs.infrastructure-setup.outputs.infrastructure-ready == 'success'
+      needs: integration-setup
+      if: needs.integration-setup.outputs.infrastructure-ready == 'success'
 
       defaults:
         run:
@@ -293,7 +292,7 @@ jobs:
           ports:
             - 5432:5432
           options: >-
-            --health-cmd "pg_isready -U testuser"
+            --health-cmd "pg_isready -U ${{ env.DB_USER }}"
             --health-interval 10s
             --health-timeout 5s
             --health-retries 5
@@ -311,6 +310,61 @@ jobs:
             distribution: 'temurin'
             cache: maven
 
+        - name: "Create test configuration for CI"
+          run: |
+            echo "Creating application-test.properties for CI environment..."
+            
+            # Check if application-test.properties exists, if not create it
+            TEST_CONFIG_DIR="src/test/resources"
+            TEST_CONFIG_FILE="$TEST_CONFIG_DIR/application-test.properties"
+            
+            # Create directory if it doesn't exist
+            mkdir -p $TEST_CONFIG_DIR
+            
+            # Create or update the test configuration file
+            cat > $TEST_CONFIG_FILE << EOF
+            # Test Database Configuration for CI
+            spring.datasource.url=jdbc:postgresql://localhost:5432/$DB_NAME
+            spring.datasource.username=$DB_USER
+            spring.datasource.password=$DB_PASSWORD
+            spring.datasource.driver-class-name=org.postgresql.Driver
+            
+            # Hibernate Configuration
+            spring.jpa.hibernate.ddl-auto=create-drop
+            spring.jpa.database-platform=org.hibernate.dialect.PostgreSQLDialect
+            spring.jpa.show-sql=true
+            spring.jpa.properties.hibernate.format_sql=true
+            
+            # Test Configuration
+            logging.level.org.springframework.web=DEBUG
+            logging.level.com.example.SummerBuild=DEBUG
+            logging.level.org.springframework.security=DEBUG
+            
+            # Disable security for easier testing (if needed)
+            # spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
+            EOF
+            
+            echo "Test configuration created:"
+            cat $TEST_CONFIG_FILE
+          env:
+            DB_NAME: ${{ env.DB_NAME }}
+            DB_USER: ${{ env.DB_USER }}
+            DB_PASSWORD: ${{ env.DB_PASSWORD }}
+
+        - name: "Wait for PostgreSQL to be ready"
+          run: |
+            echo "Waiting for PostgreSQL service to be ready..."
+            for i in {1..30}; do
+              if pg_isready -h localhost -p 5432 -U $DB_USER; then
+                echo "PostgreSQL is ready!"
+                break
+              fi
+              echo "Waiting for PostgreSQL... (attempt $i/30)"
+              sleep 2
+            done
+          env:
+            PGPASSWORD: ${{ env.DB_PASSWORD }}
+
         - name: "Run Integration Tests"
           run: |
             echo "=============================================="
@@ -318,12 +372,12 @@ jobs:
             echo "=============================================="
             echo ""
             echo "Database: PostgreSQL (localhost:5432)"
-            echo "Spring Profile: integration"
+            echo "Spring Profile: test"
             echo "Infrastructure verified by previous job"
             echo ""
             
-            # Run integration tests with PostgreSQL
-            mvn test -Dspring.profiles.active=integration -Dtest="**/*IntegrationTest" -B
+            # Run specifically the EventAPIIntegrationTest with test profile
+            mvn test -Dspring.profiles.active=test -Dtest="EventAPIIntegrationTest" -B
             
             echo ""
             echo "Integration tests completed successfully!"
@@ -332,12 +386,6 @@ jobs:
             DB_NAME: ${{ env.DB_NAME }}
             DB_USER: ${{ env.DB_USER }}
             DB_PASSWORD: ${{ env.DB_PASSWORD }}
-            # Override H2 defaults to use PostgreSQL in CI
-            TEST_DB_URL: jdbc:postgresql://localhost:5432/${{ env.DB_NAME }}
-            TEST_DB_USER: ${{ env.DB_USER }}
-            TEST_DB_PASSWORD: ${{ env.DB_PASSWORD }}
-            TEST_DB_DRIVER: org.postgresql.Driver
-            TEST_DB_DIALECT: org.hibernate.dialect.PostgreSQLDialect
 
         - name: "Integration Test Results Summary"
           if: always()  # Run even if tests fail
