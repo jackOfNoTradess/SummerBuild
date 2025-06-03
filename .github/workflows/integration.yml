@@ -259,7 +259,7 @@ jobs:
           echo "Java Environment: JDK 21"
           echo "Maven Setup: Dependencies cached"
           echo "Application Compilation: Successful"
-          echo "Spring Boot Context: Ready for test profile"
+          echo "Spring Boot Context: Ready for test profile (PostgreSQL for CI, H2 for local)"
           echo "Infrastructure Health: All systems operational"
           echo ""
           echo "Infrastructure Details:"
@@ -267,7 +267,7 @@ jobs:
           echo "  - Database Port: 5432"
           echo "  - Database Name: $DB_NAME"
           echo "  - Database User: $DB_USER"
-          echo "  - Spring Profile: test to be used"
+          echo "  - Spring Profile: test,ci to be used (PostgreSQL for true integration testing)"
           echo ""
           echo "=============================================="
 
@@ -310,42 +310,64 @@ jobs:
             distribution: 'temurin'
             cache: maven
 
-        - name: "Create test configuration for CI"
+        - name: "Create CI-specific test configuration"
           run: |
-            echo "Creating application-test.properties for CI environment..."
+            echo "Creating CI-specific test configuration for PostgreSQL..."
             
-            # Check if application-test.properties exists, if not create it
+            # Create a CI-specific properties file that will override the H2 settings
             TEST_CONFIG_DIR="src/test/resources"
-            TEST_CONFIG_FILE="$TEST_CONFIG_DIR/application-test.properties"
+            CI_CONFIG_FILE="$TEST_CONFIG_DIR/application-ci.properties"
             
             # Create directory if it doesn't exist
             mkdir -p $TEST_CONFIG_DIR
             
-            # Create or update the test configuration file
-            cat > $TEST_CONFIG_FILE << EOF
-            # Test Database Configuration for CI
+            # Create CI-specific configuration that uses PostgreSQL
+            cat > $CI_CONFIG_FILE << EOF
+            # CI-specific Test Database Configuration (PostgreSQL)
             spring.datasource.url=jdbc:postgresql://localhost:5432/$DB_NAME
             spring.datasource.username=$DB_USER
             spring.datasource.password=$DB_PASSWORD
             spring.datasource.driver-class-name=org.postgresql.Driver
             
-            # Hibernate Configuration
+            # Hibernate Configuration for PostgreSQL
             spring.jpa.hibernate.ddl-auto=create-drop
             spring.jpa.database-platform=org.hibernate.dialect.PostgreSQLDialect
             spring.jpa.show-sql=true
             spring.jpa.properties.hibernate.format_sql=true
             
+            # Server Configuration for CI
+            server.port=0
+            
+            # Disable Flyway for tests - let Hibernate create schema from entities
+            spring.flyway.enabled=false
+            
             # Test Configuration
             logging.level.org.springframework.web=DEBUG
             logging.level.com.example.SummerBuild=DEBUG
             logging.level.org.springframework.security=DEBUG
+            logging.level.org.springframework.boot.web.embedded.tomcat=INFO
             
-            # Disable security for easier testing (if needed)
-            # spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
+            # Supabase Test Configuration (same as local)
+            supabase.auth.url=\${SUPABASE_URL:http://localhost:54321}
+            supabase.anonKey=\${SUPABASE_ANON_KEY:dummyAnonKey}
+            supabase.jwtSecret=\${SUPABASE_JWT_SECRET:c3VwZXItc2VjcmV0LWp3dC10b2tlbi13aXRoLWF0LWxlYXN0LTMyLWNoYXJhY3RlcnMtbG9uZw==}
+            supabase.serviceKey=\${SUPABASE_SERVICE_KEY:dummyServiceKey}
+            
+            # Bean override configuration
+            spring.main.allow-bean-definition-overriding=true
             EOF
             
-            echo "Test configuration created:"
-            cat $TEST_CONFIG_FILE
+            echo "CI-specific test configuration created:"
+            cat $CI_CONFIG_FILE
+            echo ""
+            echo "Local H2 configuration preserved in application-test.properties"
+            
+            # Show the difference
+            echo ""
+            echo "=== LOCAL vs CI CONFIGURATION ==="
+            echo "Local (H2): Uses application-test.properties"
+            echo "CI (PostgreSQL): Uses application-ci.properties"
+            echo "================================="
           env:
             DB_NAME: ${{ env.DB_NAME }}
             DB_USER: ${{ env.DB_USER }}
@@ -365,19 +387,42 @@ jobs:
           env:
             PGPASSWORD: ${{ env.DB_PASSWORD }}
 
+        - name: "Debug test environment"
+          run: |
+            echo "=== DEBUGGING TEST ENVIRONMENT ==="
+            echo "Working directory: $(pwd)"
+            echo "Java version: $(java -version 2>&1)"
+            echo ""
+            echo "Test configuration files:"
+            find src -name "application*.properties" -o -name "application*.yml" 2>/dev/null || echo "No config files found"
+            echo ""
+            echo "Database connectivity test:"
+            pg_isready -h localhost -p 5432 -U $DB_USER && echo "DB ready" || echo "DB not ready"
+            echo ""
+            echo "Available ports:"
+            netstat -tuln | grep :8080 || echo "Port 8080 available"
+            echo "=================================="
+          env:
+            PGPASSWORD: ${{ env.DB_PASSWORD }}
+
         - name: "Run Integration Tests"
           run: |
             echo "=============================================="
             echo "         RUNNING INTEGRATION TESTS            "
             echo "=============================================="
             echo ""
-            echo "Database: PostgreSQL (localhost:5432)"
-            echo "Spring Profile: test"
+            echo "Database: PostgreSQL (localhost:5432) - Real integration testing"
+            echo "Local Development: H2 in-memory (preserved)"
+            echo "Spring Profiles: test,ci"
             echo "Infrastructure verified by previous job"
             echo ""
             
-            # Run specifically the EventAPIIntegrationTest with test profile
-            mvn test -Dspring.profiles.active=test -Dtest="EventAPIIntegrationTest" -B
+            # Run with both test and ci profiles
+            # ci profile will override H2 settings with PostgreSQL
+            mvn test \
+              -Dspring.profiles.active=test,ci \
+              -Dtest="EventAPIIntegrationTest" \
+              -B
             
             echo ""
             echo "Integration tests completed successfully!"
