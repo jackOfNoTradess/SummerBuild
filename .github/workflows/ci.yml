@@ -3,7 +3,7 @@ name: "Stage 1: Basic CI"
 # Triggers
 on:
   push:
-    branches: [T-030, main]
+    branches: [T-033, main] # Updated to match integration.yml trigger
   pull_request:
     # Trigger on PR to main
     branches: [main]
@@ -64,12 +64,12 @@ jobs:
           mvn clean compile
           echo "Compilation Successful"
 
-      # Unit Tests
+      # Unit Tests (excluding integration tests)
       - name: "Unit Testing"                   
         id: tests # Step ID (fixed reference above)
         run: |
-          echo "Running unit tests"
-          mvn -B test
+          echo "Running unit tests (excluding integration tests)"
+          mvn -B test -Dtest="!**/*IntegrationTest"
           echo "Unit Tests Completed!"
       
       # Publish test results
