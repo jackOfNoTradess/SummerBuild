@@ -68,7 +68,7 @@ jobs:
 
     outputs:
       # Informs that infrastructure is ready if verify-infrastructure succeeds
-      infrastructure-ready: ${{ steps.verify-infrastructure.outcome == 'success' }}
+      infrastructure-ready: ${{ steps.verify-infrastructure.outcome }}
       db-host: localhost
       db-port: 5432
 
