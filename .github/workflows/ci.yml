@@ -80,20 +80,6 @@ jobs:
           report_paths: 'Backend/**/target/surefire-reports/TEST-*.xml'
           check_name: "Stage 1 - Unit Test Results"
           summary: "Unit test results from Stage 1 CI pipeline"
-
-      # Trigger next stage
-      - name: "Trigger Stage 2 - Integration Tests"
-        if: success() && github.event_name != 'pull_request'
-        uses: peter-evans/repository-dispatch@v3
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          event-type: stage1-complete
-          client-payload: |
-            {
-              "sha": "${{ github.sha }}",
-              "ref": "${{ github.ref }}",
-              "stage1_run_id": "${{ github.run_id }}"
-            }
       
       # Summary Report
       - name: "Stage 1 Summary Report"
@@ -119,3 +105,19 @@ jobs:
           fi
 
           echo "=========================="
+
+  call-stage2:
+    name: "Trigger Stage 2"
+    needs: basic-ci
+    if: needs.basic-ci.outputs.build-success == 'true' && github.event_name != 'pull_request'
+    
+    # This calls the integration workflow
+    uses: ./.github/workflows/integration.yml
+    with:
+      sha: ${{ github.sha }}
+      ref: ${{ github.ref }}
+      stage1_run_id: ${{ github.run_id }}
+    secrets:
+        POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+        POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+        POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
