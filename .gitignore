@@ -97,5 +97,7 @@ build/
 **/application.properties
 !**/application.properties.template
 **/env.properties
+**/application-test.properties
+**/application-integration.properties
 !**/env.properties.template
 

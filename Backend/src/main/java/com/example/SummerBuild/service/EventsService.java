@@ -69,10 +69,24 @@ public class EventsService {
 
     // Convert to entity and save
     Events event = eventsMapper.toEntity(eventsDto);
+
+    // DEBUG: Check entity before save
+    logger.info("Entity before save - ID: {}, Host UUID: {}", event.getId(), event.getHost_uuid());
+
     Events savedEvent = eventsRepository.save(event);
 
+    // DEBUG: Check entity after save
+    logger.info(
+        "Entity after save - ID: {}, Host UUID: {}", savedEvent.getId(), savedEvent.getHost_uuid());
+
+    EventsDto resultDto = eventsMapper.toDto(savedEvent);
+
+    // DEBUG: Check DTO after mapping
+    logger.info(
+        "DTO after mapping - ID: {}, Host UUID: {}", resultDto.getId(), resultDto.getHostUuid());
+
     logger.info("Successfully created event with id: {}", savedEvent.getId());
-    return eventsMapper.toDto(savedEvent);
+    return resultDto;
   }
 
   @Transactional

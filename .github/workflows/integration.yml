@@ -41,8 +41,8 @@ env:
   DB_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
 
 jobs:
-  integration-tests: 
-    name: "Integration Tests"
+  integration-setup: 
+    name: "Integration Infrastructure Setup"
     runs-on: ubuntu-latest
 
     defaults:
@@ -114,9 +114,9 @@ jobs:
       - name: "Stage 1 Information"
         if: github.event_name == 'repository_dispatch'
         run: |
-          echo "============================="
-          echo "  STAGE 2: INTEGRATION TESTS "
-          echo "============================="
+          echo "==============================="
+          echo " STAGE 2: INTEGRATION TESTING  "
+          echo "==============================="
           echo "Triggered by Stage 1 completion"
           echo "Source SHA: ${{ github.event.client_payload.sha }}"
           echo "Source Ref: ${{ github.event.client_payload.ref }}"
@@ -271,3 +271,99 @@ jobs:
           echo "  - Spring Profile: integration to be used"
           echo ""
           echo "=============================================="
+
+  integration-tests:
+      name: "Integration Tests"
+      runs-on: ubuntu-latest
+      needs: infrastructure-setup
+      if: needs.infrastructure-setup.outputs.infrastructure-ready == 'success'
+
+      defaults:
+        run:
+          working-directory: Backend
+
+      # PostgreSQL service container for integration testing
+      services:
+        postgres:
+          image: postgres:15
+          env:
+            POSTGRES_DB: ${{ env.DB_NAME }}
+            POSTGRES_USER: ${{ env.DB_USER }}
+            POSTGRES_PASSWORD: ${{ env.DB_PASSWORD }}
+          ports:
+            - 5432:5432
+          options: >-
+            --health-cmd "pg_isready -U testuser"
+            --health-interval 10s
+            --health-timeout 5s
+            --health-retries 5
+
+      steps:
+        - name: "Getting Code"
+          uses: actions/checkout@v4
+          with:
+            ref: ${{ github.event.client_payload.sha || github.sha }}
+
+        - name: "Set up JDK 21"
+          uses: actions/setup-java@v4
+          with:
+            java-version: ${{ env.JAVA_VERSION }}
+            distribution: 'temurin'
+            cache: maven
+
+        - name: "Run Integration Tests"
+          run: |
+            echo "=============================================="
+            echo "         RUNNING INTEGRATION TESTS            "
+            echo "=============================================="
+            echo ""
+            echo "Database: PostgreSQL (localhost:5432)"
+            echo "Spring Profile: integration"
+            echo "Infrastructure verified by previous job"
+            echo ""
+            
+            # Run integration tests with PostgreSQL
+            mvn test -Dspring.profiles.active=integration -Dtest="**/*IntegrationTest" -B
+            
+            echo ""
+            echo "Integration tests completed successfully!"
+            echo "=============================================="
+          env:
+            DB_NAME: ${{ env.DB_NAME }}
+            DB_USER: ${{ env.DB_USER }}
+            DB_PASSWORD: ${{ env.DB_PASSWORD }}
+            # Override H2 defaults to use PostgreSQL in CI
+            TEST_DB_URL: jdbc:postgresql://localhost:5432/${{ env.DB_NAME }}
+            TEST_DB_USER: ${{ env.DB_USER }}
+            TEST_DB_PASSWORD: ${{ env.DB_PASSWORD }}
+            TEST_DB_DRIVER: org.postgresql.Driver
+            TEST_DB_DIALECT: org.hibernate.dialect.PostgreSQLDialect
+
+        - name: "Integration Test Results Summary"
+          if: always()  # Run even if tests fail
+          run: |
+            echo "=============================================="
+            echo "       INTEGRATION TEST RESULTS SUMMARY       "
+            echo "=============================================="
+            echo ""
+            if [ -f "target/surefire-reports/TEST-*.xml" ]; then
+              echo "Test reports generated:"
+              ls -la target/surefire-reports/TEST-*IntegrationTest.xml 2>/dev/null || echo "No integration test reports found"
+              
+              # Show test summary
+              echo ""
+              echo "Test Results:"
+              grep -h "tests=" target/surefire-reports/TEST-*IntegrationTest.xml 2>/dev/null | head -5 || echo "Could not extract test summary"
+            else
+              echo "No test reports directory found"
+            fi
+            echo ""
+            echo "=============================================="
+
+        - name: "Upload Test Reports"
+          if: always()
+          uses: actions/upload-artifact@v4
+          with:
+            name: integration-test-reports
+            path: Backend/target/surefire-reports/
+            retention-days: 30
