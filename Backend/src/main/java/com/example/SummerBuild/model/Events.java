@@ -40,7 +40,7 @@ public class Events extends BaseEntity {
   @Column(name = "description", length = 255)
   private String description;
 
-  @ElementCollection
+  @ElementCollection(fetch = FetchType.EAGER)
   @CollectionTable(name = "event_tags", joinColumns = @JoinColumn(name = "event_id"))
   @Column(name = "tag")
   private List<String> tags;

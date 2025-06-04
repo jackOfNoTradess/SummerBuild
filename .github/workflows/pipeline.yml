@@ -1,0 +1,51 @@
+name: "Pipeline"
+
+# Triggers
+on:
+  push:
+    branches: ['*']  
+  # pull_request:
+  #   # Trigger on PR to main
+  #   branches: [main]
+  # Add a manual "Run Workflow" button in Github CI
+  workflow_dispatch: 
+
+# Permissions
+permissions:
+  contents: read # Permission to read repo
+  checks: write # Permission to write test reports
+  pull-requests: write # Permissions to comment on PRs
+
+# Global environment variables
+env:
+  JAVA_VERSION: '21'
+
+jobs:
+  call-stage1:
+    name: "Trigger Stage 1"
+    
+    # Call Stage 1
+    uses: ./.github/workflows/setup.yml
+    with:
+      sha: ${{ github.sha }}
+      ref: ${{ github.ref }}
+      stage1_run_id: ${{ github.run_id }}
+    secrets:
+        POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+        POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+        POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+
+  call-stage2:
+    name: "Trigger Stage 2"
+    needs: call-stage1
+    
+    # Call Stage 2
+    uses: ./.github/workflows/integration.yml
+    with:
+      sha: ${{ github.sha }}
+      ref: ${{ github.ref }}
+      stage1_run_id: ${{ github.run_id }}
+    secrets:
+        POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+        POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+        POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}

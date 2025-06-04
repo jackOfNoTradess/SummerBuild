@@ -40,7 +40,11 @@ public class EventsController {
   @PostMapping
   public ResponseEntity<EventsDto> createEvent(
       @Valid @RequestBody EventsDto eventsDto, Authentication authentication) {
+    logger.info("=== CONTROLLER REACHED ===");
     logger.info("POST /api/events - Creating new event with title: {}", eventsDto.getTitle());
+    logger.info("Authentication object: {}", authentication);
+    logger.info(
+        "Authentication name: {}", authentication != null ? authentication.getName() : "NULL");
 
     // Get the authenticated user's UUID
     UUID hostUuid = UUID.fromString(authentication.getName());
