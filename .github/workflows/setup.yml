@@ -126,12 +126,12 @@ jobs:
           echo "Running unit tests (excluding integration tests)"
           mvn -B test -Dtest="!**/*IntegrationTest"
           echo "Unit Tests Completed!"
-  report:
-    name: "Results Report"
-    needs: unit-test
-    if: always()
-    runs-on: ubuntu-latest
-    steps:
+  # report:
+  #   name: "Results Report"
+  #   needs: unit-test
+  #   if: always()
+  #   runs-on: ubuntu-latest
+  #   steps:
       # Publish test results
       - name: "Test Results"
         uses: mikepenz/action-junit-report@v4
