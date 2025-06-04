@@ -21,105 +21,12 @@ env:
   JAVA_VERSION: '21'
 
 jobs:
-  basic-setup:
-    name: "Code Quality - Build - Unit Tests"
-    runs-on: ubuntu-latest
-
-    # Job outputs to be passed to other workflows like Stage 2,etc
-    outputs:
-      build-success: ${{ steps.tests.outcome == 'success' }} 
-      artifact-name: app-jar-${{ github.sha }}
-      commit-sha: ${{ github.sha }}
-      branch-ref: ${{ github.ref }}
-
-    # Job level settings
-    defaults:  
-      run:     
-        working-directory: Backend # All commands run in Backend folder
-    
-    steps:
-      # Get Code
-      - name: 'Getting Code'                    
-        uses: actions/checkout@v4
-
-      # Set up Java environment  
-      - name: "Set up JDK 21"                   
-        uses: actions/setup-java@v4
-        with:
-          java-version: ${{ env.JAVA_VERSION }}
-          distribution: 'temurin'
-          cache: maven
-
-      # Code Formatting Check
-      - name: "Check code formatting"           
-        run: |
-          echo "Checking code format..."
-          mvn spotless:check
-          echo "Code formatting passed!"
-  # Build Stage
-  build:
-    name: "Build Application"
-    needs: basic-setup
-    steps:
-      - name: "Build"                           
-        run: |
-          echo "Compiling Application"
-          mvn clean compile
-          echo "Compilation Successful"
-  unit-test:
-    name: "Unit Tests"
-    needs: build
-    steps:
-      # Unit Tests (excluding integration tests)
-      - name: "Unit Testing"                   
-        id: tests # Step ID (fixed reference above)
-        run: |
-          echo "Running unit tests (excluding integration tests)"
-          mvn -B test -Dtest="!**/*IntegrationTest"
-          echo "Unit Tests Completed!"
-  report:
-    name: "Results Report"
-    steps:
-      # Publish test results
-      - name: "Test Results"
-        uses: mikepenz/action-junit-report@v4
-        if: always()
-        with:
-          report_paths: 'Backend/**/target/surefire-reports/TEST-*.xml'
-          check_name: "Stage 1 - Unit Test Results"
-          summary: "Unit test results from Stage 1 CI pipeline"
-      
-      # Summary Report
-      - name: "Stage 1 Summary Report"
-        if: always()
-        run: |
-          echo "=========================="
-          echo "     STAGE 1 COMPLETE     "
-          echo "=========================="
-
-          if [[ "${{ job.status }}" == "success" ]]; then
-            echo "Code formatting: PASSED"
-            echo "Compilation: PASSED"
-            echo "Unit tests: PASSED"
-
-            if [[ "${{ github.event_name }}" != "pull_request" ]]; then
-              echo "Triggering Stage 2..."
-            else
-              echo "Stage 2 Trigger Halted - PR Detected"
-            fi
-          else
-            echo "Stage 1 FAILED - Pipeline Stopped"
-            echo "Check the logs above for details"
-          fi
-
-          echo "=========================="
-
   call-stage1:
     name: "Trigger Stage 1"
     needs: basic-setup
     if: needs.basic-setup.outputs.build-success == 'true' && github.event_name != 'pull_request'
     
-    # This calls the setup workflow
+    # Call Stage 1
     uses: ./.github/workflows/setup.yml
     with:
       sha: ${{ github.sha }}
@@ -135,7 +42,7 @@ jobs:
     needs: call-stage1
     if: github.event_name != 'pull_request'
     
-    # This calls the integration workflow
+    # Call Stage 2
     uses: ./.github/workflows/integration.yml
     with:
       sha: ${{ github.sha }}
