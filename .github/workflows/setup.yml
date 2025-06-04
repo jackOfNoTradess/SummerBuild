@@ -3,7 +3,7 @@ name: "Stage 1: Setup"
 # Triggers
 on:
   push:
-    branches: [*]
+    branches: ['*']
   # pull_request:
   #   # Trigger on PR to main
   #   branches: [main]
