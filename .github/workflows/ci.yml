@@ -1,4 +1,4 @@
-name: "Stage 1: Basic CI"
+name: "Stage 1: Entire Pipeline"
 
 # Triggers
 on:
@@ -21,7 +21,7 @@ env:
   JAVA_VERSION: '21'
 
 jobs:
-  basic-ci:
+  basic-setup:
     name: "Code Quality - Build - Unit Tests"
     runs-on: ubuntu-latest
 
@@ -56,14 +56,20 @@ jobs:
           echo "Checking code format..."
           mvn spotless:check
           echo "Code formatting passed!"
-      
-      # Build
+  # Build Stage
+  build:
+    name: "Build Application"
+    needs: basic-setup
+    steps:
       - name: "Build"                           
         run: |
           echo "Compiling Application"
           mvn clean compile
           echo "Compilation Successful"
-
+  unit-test:
+    name: "Unit Tests"
+    needs: build
+    steps:
       # Unit Tests (excluding integration tests)
       - name: "Unit Testing"                   
         id: tests # Step ID (fixed reference above)
@@ -71,7 +77,9 @@ jobs:
           echo "Running unit tests (excluding integration tests)"
           mvn -B test -Dtest="!**/*IntegrationTest"
           echo "Unit Tests Completed!"
-      
+  report:
+    name: "Results Report"
+    steps:
       # Publish test results
       - name: "Test Results"
         uses: mikepenz/action-junit-report@v4
@@ -108,8 +116,8 @@ jobs:
 
   call-stage2:
     name: "Trigger Stage 2"
-    needs: basic-ci
-    if: needs.basic-ci.outputs.build-success == 'true' && github.event_name != 'pull_request'
+    needs: basic-setup
+    if: needs.basic-setup.outputs.build-success == 'true' && github.event_name != 'pull_request'
     
     # This calls the integration workflow
     uses: ./.github/workflows/integration.yml
