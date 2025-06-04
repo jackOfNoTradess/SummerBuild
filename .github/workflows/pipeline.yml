@@ -1,9 +1,9 @@
-name: "Stage 1: Setup"
+name: "Pipeline"
 
 # Triggers
 on:
   push:
-    branches: [T-033, main] # Updated to match integration.yml trigger
+    branches: ['*']  # This will trigger on any branch
   pull_request:
     # Trigger on PR to main
     branches: [main]
@@ -79,9 +79,6 @@ jobs:
           echo "Unit Tests Completed!"
   report:
     name: "Results Report"
-    needs: unit-test
-    if: always()
-    runs-on: ubuntu-latest
     steps:
       # Publish test results
       - name: "Test Results"
@@ -116,3 +113,35 @@ jobs:
           fi
 
           echo "=========================="
+
+  call-stage1:
+    name: "Trigger Stage 1"
+    needs: basic-setup
+    if: needs.basic-setup.outputs.build-success == 'true' && github.event_name != 'pull_request'
+    
+    # This calls the setup workflow
+    uses: ./.github/workflows/setup.yml
+    with:
+      sha: ${{ github.sha }}
+      ref: ${{ github.ref }}
+      stage1_run_id: ${{ github.run_id }}
+    secrets:
+        POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+        POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+        POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+
+  call-stage2:
+    name: "Trigger Stage 2"
+    needs: call-stage1
+    if: github.event_name != 'pull_request'
+    
+    # This calls the integration workflow
+    uses: ./.github/workflows/integration.yml
+    with:
+      sha: ${{ github.sha }}
+      ref: ${{ github.ref }}
+      stage1_run_id: ${{ github.run_id }}
+    secrets:
+        POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+        POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+        POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
