@@ -3,10 +3,10 @@ name: "Pipeline"
 # Triggers
 on:
   push:
-    branches: ['*']  # This will trigger on any branch
-  pull_request:
-    # Trigger on PR to main
-    branches: [main]
+    branches: ['*']  
+  # pull_request:
+  #   # Trigger on PR to main
+  #   branches: [main]
   # Add a manual "Run Workflow" button in Github CI
   workflow_dispatch: 
 

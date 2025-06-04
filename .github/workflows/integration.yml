@@ -1,10 +1,10 @@
-name: "Stage 2 Integration"
+name: "Stage 2: Integration"
 
 on:
   push:
-    branches: [T-033, main]
-  pull_request:
-    branches: [main]
+    branches: [*]
+  # pull_request:
+  #   branches: [main]
   workflow_dispatch:
   # Called by Stage 1 CI workflow completion
   workflow_call:

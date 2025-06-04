@@ -3,10 +3,10 @@ name: "Stage 1: Setup"
 # Triggers
 on:
   push:
-    branches: [T-033, main] # Updated to match integration.yml trigger
-  pull_request:
-    # Trigger on PR to main
-    branches: [main]
+    branches: [*]
+  # pull_request:
+  #   # Trigger on PR to main
+  #   branches: [main]
   # Add a manual "Run Workflow" button in Github CI
   workflow_dispatch: 
   # Called by pipeline workflow
