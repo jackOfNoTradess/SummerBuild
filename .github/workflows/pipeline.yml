@@ -23,7 +23,7 @@ env:
 jobs:
   call-stage1:
     name: "Trigger Stage 1"
-    if: needs.basic-setup.outputs.build-success == 'true' && github.event_name != 'pull_request'
+    if: github.event_name != 'pull_request'
     
     # Call Stage 1
     uses: ./.github/workflows/setup.yml
