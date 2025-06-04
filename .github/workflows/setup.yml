@@ -9,6 +9,25 @@ on:
     branches: [main]
   # Add a manual "Run Workflow" button in Github CI
   workflow_dispatch: 
+  # Called by pipeline workflow
+  workflow_call:
+    inputs:
+      sha:
+        required: true
+        type: string
+      ref:
+        required: true
+        type: string
+      stage1_run_id:
+        required: true
+        type: string
+    secrets:
+      POSTGRES_DB:
+        required: true
+      POSTGRES_USER:
+        required: true
+      POSTGRES_PASSWORD:
+        required: true
 
 # Permissions
 permissions:
@@ -63,7 +82,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: basic-setup
     defaults:
-      runs:
+      run:
         working-directory: Backend
     steps:
       - name: 'Getting Code'
