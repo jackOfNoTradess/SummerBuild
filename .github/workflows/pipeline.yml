@@ -23,7 +23,6 @@ env:
 jobs:
   call-stage1:
     name: "Trigger Stage 1"
-    runs-on: ubuntu-latest
     
     # Call Stage 1
     uses: ./.github/workflows/setup.yml
@@ -39,7 +38,6 @@ jobs:
   call-stage2:
     name: "Trigger Stage 2"
     needs: call-stage1
-    runs-on: ubuntu-latest
     
     # Call Stage 2
     uses: ./.github/workflows/integration.yml
