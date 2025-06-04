@@ -2,7 +2,7 @@ package com.example.SummerBuild.integration;
 
 import static org.assertj.core.api.Assertions.*;
 
-import com.example.SummerBuild.config.EventsDtoTestMixin;
+import com.example.SummerBuild.config.EventsDtoTestByPass;
 import com.example.SummerBuild.config.TestAuthConfig;
 import com.example.SummerBuild.config.TestSecurityConfig;
 import com.example.SummerBuild.dto.EventsDto;
@@ -54,7 +54,7 @@ class EventAPIIntegrationTest {
     authHeaders = new HttpHeaders();
     authHeaders.setContentType(MediaType.APPLICATION_JSON);
     authHeaders.setBearerAuth(jwtToken);
-    objectMapper.addMixIn(EventsDto.class, EventsDtoTestMixin.class);
+    objectMapper.addMixIn(EventsDto.class, EventsDtoTestByPass.class);
   }
 
   @AfterEach
@@ -238,7 +238,7 @@ class EventAPIIntegrationTest {
     try {
       ObjectMapper testMapper = new ObjectMapper();
       testMapper.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
-      testMapper.addMixIn(EventsDto.class, EventsDtoTestMixin.class);
+      testMapper.addMixIn(EventsDto.class, EventsDtoTestByPass.class);
       System.out.println("Mix-in applied: " + objectMapper.findMixInClassFor(EventsDto.class));
       createdEvent = testMapper.readValue(createResponseRaw.getBody(), EventsDto.class);
       System.out.println("Mapper identity: " + testMapper);
