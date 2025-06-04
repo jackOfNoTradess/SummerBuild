@@ -2,6 +2,7 @@ package com.example.SummerBuild.integration;
 
 import static org.assertj.core.api.Assertions.*;
 
+import com.example.SummerBuild.config.EventsDtoTestMixin;
 import com.example.SummerBuild.config.TestAuthConfig;
 import com.example.SummerBuild.config.TestSecurityConfig;
 import com.example.SummerBuild.dto.EventsDto;
@@ -57,6 +58,7 @@ class EventAPIIntegrationTest {
     authHeaders = new HttpHeaders();
     authHeaders.setContentType(MediaType.APPLICATION_JSON);
     authHeaders.setBearerAuth(jwtToken);
+    objectMapper.addMixIn(EventsDto.class, EventsDtoTestMixin.class);
   }
 
   @AfterEach
@@ -248,9 +250,31 @@ class EventAPIIntegrationTest {
     eventToDelete.setTitle("Event to Delete");
 
     HttpEntity<EventsDto> createRequest = new HttpEntity<>(eventToDelete, authHeaders);
-    ResponseEntity<EventsDto> createResponse =
-        restTemplate.postForEntity(baseUrl, createRequest, EventsDto.class);
-    UUID eventId = createResponse.getBody().getId();
+    ResponseEntity<String> createResponseRaw =
+        restTemplate.postForEntity(baseUrl, createRequest, String.class);
+
+    System.out.println("=== CREATE RESPONSE RAW ===");
+    System.out.println("Status: " + createResponseRaw.getStatusCode());
+    System.out.println("Body: " + createResponseRaw.getBody());
+
+    EventsDto createdEvent = null;
+    UUID eventId = null;
+
+    try {
+      ObjectMapper testMapper = new ObjectMapper();
+      testMapper.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
+      testMapper.addMixIn(
+          EventsDto.class, EventsDtoTestMixin.class); // applies override only in test
+      System.out.println("Mix-in applied: " + objectMapper.findMixInClassFor(EventsDto.class));
+      createdEvent = testMapper.readValue(createResponseRaw.getBody(), EventsDto.class);
+      System.out.println("Mapper identity: " + testMapper);
+      eventId = createdEvent.getId();
+      System.out.println("Parsed ID: " + eventId);
+      System.out.println("Parsed Host UUID: " + createdEvent.getHostUuid());
+    } catch (Exception e) {
+      System.out.println("=== ERROR PARSING JSON ===");
+      e.printStackTrace();
+    }
 
     // Verify event exists in database
     String countSql = "SELECT COUNT(*) FROM events WHERE id = ?";
