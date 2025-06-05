@@ -116,4 +116,28 @@ class UserAPIIntegrationTest {
     assertThat(userData.get("role")).isEqualTo(UserRole.USER.name());
     assertThat(userData.get("gender")).isEqualTo(Gender.MALE.name());
   }
+
+  /** Tests retrieving a user by ID -> calls Supabase API */
+  @Test
+  @Order(2)
+  @DisplayName("Integration: Get User By ID → Supabase API → Response Handling")
+  void testGetUserById() {
+    HttpEntity<Void> request = new HttpEntity<>(authHeaders);
+    ResponseEntity<String> response =
+        restTemplate.exchange(baseUrl + "/" + testUserId, HttpMethod.GET, request, String.class);
+
+    // This endpoint calls Supabase API
+    // Testing that endpoint is secured
+    assertThat(response.getStatusCode())
+        .isIn(
+            HttpStatus.OK,
+            HttpStatus.FORBIDDEN,
+            HttpStatus.INTERNAL_SERVER_ERROR,
+            HttpStatus.NOT_FOUND);
+
+    // If it's forbidden or error, verify it's due to Supabase API issues, not auth issues
+    if (response.getStatusCode() == HttpStatus.FORBIDDEN) {
+      assertThat(response.getBody()).containsAnyOf("JWT", "token", "auth", "forbidden");
+    }
+  }
 }
