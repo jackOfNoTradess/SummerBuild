@@ -4,10 +4,12 @@ import static org.assertj.core.api.Assertions.*;
 
 import com.example.SummerBuild.config.TestAuthConfig;
 import com.example.SummerBuild.config.TestSecurityConfig;
+import com.example.SummerBuild.dto.UserDto;
 import com.example.SummerBuild.model.Gender;
 import com.example.SummerBuild.model.UserRole;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.jsonwebtoken.lang.Arrays;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.*;
@@ -135,7 +137,7 @@ class UserAPIIntegrationTest {
             HttpStatus.INTERNAL_SERVER_ERROR,
             HttpStatus.NOT_FOUND);
 
-    // If it's forbidden or error, verify it's due to Supabase API issues, not auth issues
+    // If forbidden or error, verify it's due to Supabase API issues, not auth issues
     if (response.getStatusCode() == HttpStatus.FORBIDDEN) {
       assertThat(response.getBody()).containsAnyOf("JWT", "token", "auth", "forbidden");
     }
@@ -159,7 +161,7 @@ class UserAPIIntegrationTest {
             HttpStatus.FORBIDDEN,
             HttpStatus.INTERNAL_SERVER_ERROR);
 
-    // Verify endpoint is secured (dont allow unauthenticated access)
+    // Verify endpoint is secured
     HttpHeaders noAuthHeaders = new HttpHeaders();
     noAuthHeaders.setContentType(MediaType.APPLICATION_JSON);
     HttpEntity<Void> unauthRequest = new HttpEntity<>(noAuthHeaders);
@@ -183,7 +185,7 @@ class UserAPIIntegrationTest {
         restTemplate.exchange(
             baseUrl + "/" + deleteUserId, HttpMethod.DELETE, request, String.class);
 
-    // This endpoint calls Supabase API - expect appropriate error handling
+    // This endpoint calls Supabase API
     assertThat(response.getStatusCode())
         .isIn(
             HttpStatus.OK,
@@ -228,7 +230,7 @@ class UserAPIIntegrationTest {
     ResponseEntity<String> response =
         restTemplate.exchange(baseUrl, HttpMethod.GET, request, String.class);
 
-    // This endpoint calls Supabase API, so in test environment it will likely fail
+    // This endpoint calls Supabase API
     // We're testing that the endpoint is secured and responds appropriately
     assertThat(response.getStatusCode())
         .isIn(HttpStatus.OK, HttpStatus.FORBIDDEN, HttpStatus.INTERNAL_SERVER_ERROR);
@@ -257,7 +259,7 @@ class UserAPIIntegrationTest {
     noAuthHeaders.setContentType(MediaType.APPLICATION_JSON);
     HttpEntity<Void> unauthenticatedRequest = new HttpEntity<>(noAuthHeaders);
 
-    // Test all major endpoints require authentication
+    // Test endpoints that require authentication
     String[] protectedEndpoints = {
       baseUrl, // GET /api/users
       baseUrl + "/" + testUserId, // GET /api/users/{id}
@@ -271,13 +273,64 @@ class UserAPIIntegrationTest {
       assertThat(response.getStatusCode()).isIn(HttpStatus.UNAUTHORIZED, HttpStatus.FORBIDDEN);
     }
 
-    // Verify authenticated requests work (even if they fail due to Supabase)
+    // Verify authenticated requests work
     HttpEntity<Void> authenticatedRequest = new HttpEntity<>(authHeaders);
     ResponseEntity<String> authResponse =
         restTemplate.exchange(
             baseUrl + "/role/USER", HttpMethod.GET, authenticatedRequest, String.class);
 
-    // Role endpoint should work since it uses local database
     assertThat(authResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+  }
+
+  /** Tests role-based filtering works with local database */
+  @Test
+  @Order(7)
+  @DisplayName("Integration: Role Restrictions → Local Database → Access Control")
+  void testRoleRestrictions() {
+    // Insert users with different roles
+    UUID adminUserId = UUID.randomUUID();
+    UUID regularUserId = UUID.randomUUID();
+
+    jdbcTemplate.update(
+        "INSERT INTO users (id, role, gender, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())",
+        adminUserId,
+        UserRole.ADMIN.name(),
+        Gender.MALE.name());
+
+    jdbcTemplate.update(
+        "INSERT INTO users (id, role, gender, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())",
+        regularUserId,
+        UserRole.USER.name(),
+        Gender.FEMALE.name());
+
+    // Test the local database filtering endpoint (this one doesn't call Supabase)
+    HttpEntity<Void> request = new HttpEntity<>(authHeaders);
+    ResponseEntity<UserDto[]> response =
+        restTemplate.exchange(baseUrl + "/role/ADMIN", HttpMethod.GET, request, UserDto[].class);
+
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    List<UserDto> adminUsers = Arrays.asList(response.getBody());
+
+    // Verify admin users were found
+    assertThat(adminUsers).isNotEmpty();
+    assertThat(adminUsers).allMatch(user -> user.getRole() == UserRole.ADMIN);
+
+    // Test USER role filtering
+    ResponseEntity<UserDto[]> userResponse =
+        restTemplate.exchange(baseUrl + "/role/USER", HttpMethod.GET, request, UserDto[].class);
+
+    assertThat(userResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+    List<UserDto> regularUsers = Arrays.asList(userResponse.getBody());
+    assertThat(regularUsers).isNotEmpty();
+    assertThat(regularUsers).allMatch(user -> user.getRole() == UserRole.USER);
+
+    // Verify database consistency
+    String countAdminSql = "SELECT COUNT(*) FROM users WHERE role = 'ADMIN'";
+    String countUserSql = "SELECT COUNT(*) FROM users WHERE role = 'USER'";
+    Integer adminCount = jdbcTemplate.queryForObject(countAdminSql, Integer.class);
+    Integer userCount = jdbcTemplate.queryForObject(countUserSql, Integer.class);
+
+    assertThat(adminCount).isGreaterThanOrEqualTo(1);
+    assertThat(userCount).isGreaterThanOrEqualTo(1);
   }
 }
