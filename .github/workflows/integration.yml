@@ -112,15 +112,29 @@ jobs:
           DB_PASSWORD: ${{ env.DB_PASSWORD }}
 
       - name: "Stage 1 Information"
-        if: github.event_name == 'repository_dispatch'
+        if: |
+          github.event_name == 'repository_dispatch' || 
+          github.event_name == 'workflow_call' ||
+          (github.event_name == 'workflow_dispatch' && github.event.inputs.sha)
         run: |
           echo "==============================="
           echo " STAGE 2: INTEGRATION TESTING  "
           echo "==============================="
-          echo "Triggered by Stage 1 completion"
-          echo "Source SHA: ${{ github.event.client_payload.sha }}"
-          echo "Source Ref: ${{ github.event.client_payload.ref }}"
-          echo "Stage 1 Run ID: ${{ github.event.client_payload.stage1_run_id }}"
+          if [ "${{ github.event_name }}" == "repository_dispatch" ]; then
+            echo "Triggered by Stage 1 completion (repository_dispatch)"
+            echo "Source SHA: ${{ github.event.client_payload.sha }}"
+            echo "Source Ref: ${{ github.event.client_payload.ref }}"
+            echo "Stage 1 Run ID: ${{ github.event.client_payload.stage1_run_id }}"
+          elif [ "${{ github.event_name }}" == "workflow_call" ]; then
+            echo "Triggered by Stage 1 completion (workflow_call)"
+            echo "Source SHA: ${{ inputs.sha }}"
+            echo "Source Ref: ${{ inputs.ref }}"
+            echo "Stage 1 Run ID: ${{ inputs.stage1_run_id }}"
+          else
+            echo "Triggered manually or by push"
+            echo "Source SHA: ${{ github.sha }}"
+            echo "Source Ref: ${{ github.ref }}"
+          fi
           echo "============================="
 
       - name: "Set up JDK 21"
