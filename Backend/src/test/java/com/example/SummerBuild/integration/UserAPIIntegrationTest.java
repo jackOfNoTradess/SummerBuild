@@ -7,9 +7,11 @@ import com.example.SummerBuild.config.TestSecurityConfig;
 import com.example.SummerBuild.dto.UserDto;
 import com.example.SummerBuild.model.Gender;
 import com.example.SummerBuild.model.UserRole;
+import com.example.SummerBuild.service.UserService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.jsonwebtoken.lang.Arrays;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.*;
@@ -20,6 +22,8 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.*;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.annotation.Commit;
+import org.springframework.test.annotation.Rollback;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,6 +41,8 @@ class UserAPIIntegrationTest {
   @Autowired private JdbcTemplate jdbcTemplate;
 
   @Autowired private ObjectMapper objectMapper;
+
+  @Autowired private UserService userService;
 
   @LocalServerPort private int port;
 
@@ -286,6 +292,8 @@ class UserAPIIntegrationTest {
   @Test
   @Order(7)
   @DisplayName("Integration: Role Restrictions → Local Database → Access Control")
+  @Rollback(false)
+  @Commit
   void testRoleRestrictions() {
     // Insert users with different roles
     UUID adminUserId = UUID.randomUUID();
@@ -303,7 +311,10 @@ class UserAPIIntegrationTest {
         UserRole.USER.name(),
         Gender.FEMALE.name());
 
-    // Test the local database filtering endpoint (this one doesn't call Supabase)
+    // FORCE TRANSACTION COMMIT before HTTP call
+    jdbcTemplate.execute("COMMIT");
+
+    // Test the local database filtering endpoint (not calling Supabase)
     HttpEntity<Void> request = new HttpEntity<>(authHeaders);
     ResponseEntity<UserDto[]> response =
         restTemplate.exchange(baseUrl + "/role/ADMIN", HttpMethod.GET, request, UserDto[].class);

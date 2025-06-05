@@ -3,6 +3,8 @@ package com.example.SummerBuild.controller;
 import com.example.SummerBuild.dto.UserDto;
 import com.example.SummerBuild.model.UserRole;
 import com.example.SummerBuild.service.UserService;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import java.util.HashMap;
 import java.util.List;
@@ -97,6 +99,42 @@ public class UserController {
   // GET /api/users/role/{role}
   @GetMapping("/role/{role}")
   public ResponseEntity<List<UserDto>> getUsersByRole(@PathVariable UserRole role) {
-    return ResponseEntity.ok(userService.findByRole(role));
+    List<UserDto> users = userService.findByRole(role);
+
+    // ========== CONTROLLER DEBUG ==========
+    System.out.println("========== CONTROLLER DEBUG ==========");
+    System.out.println("Service returned " + users.size() + " users");
+
+    if (!users.isEmpty()) {
+      UserDto firstUser = users.get(0);
+      System.out.println("First user object: " + firstUser);
+      System.out.println("First user ID: " + firstUser.getId());
+      System.out.println("First user role: " + firstUser.getRole());
+      System.out.println("First user gender: " + firstUser.getGender());
+      System.out.println("First user createdAt: " + firstUser.getCreatedAt());
+      System.out.println("First user updatedAt: " + firstUser.getUpdatedAt());
+
+      // Test Jackson serialization manually
+      try {
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.registerModule(new JavaTimeModule());
+        String json = mapper.writeValueAsString(firstUser);
+        System.out.println("Manual JSON serialization: " + json);
+
+        // Test list serialization
+        String listJson = mapper.writeValueAsString(users);
+        System.out.println("Manual LIST JSON serialization: " + listJson);
+      } catch (Exception e) {
+        System.out.println("JSON serialization error: " + e.getMessage());
+        e.printStackTrace();
+      }
+    } else {
+      System.out.println("Users list is EMPTY!");
+    }
+
+    System.out.println("About to return ResponseEntity.ok() with " + users.size() + " users");
+    System.out.println("=======================================");
+
+    return ResponseEntity.ok(users);
   }
 }
