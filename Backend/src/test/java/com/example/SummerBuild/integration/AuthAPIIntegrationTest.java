@@ -161,18 +161,20 @@ class AuthAPIIntegrationTest {
 
   @Test
   @Order(5)
-  void testSignupReturnsToken() throws Exception {
-    String signupUrl = baseUrl + "/api/auth/signup";
-    String signupParams =
-        "?email=test@example.com&password=password123&displayName=Test User&userRole=USER&gender=MALE";
+  void testLoginReturnsToken() throws Exception {
+    // Test user login after successful signup returns JWT token
+    // Returns: {"access_token": "string"}
+    String email = "login-test@example.com";
+    String password = "password123";
+    performSignup(email, password, "Login Test User", "USER", "FEMALE");
+
+    String loginUrl = baseUrl + "/api/auth/login";
+    String loginParams = String.format("?email=%s&password=%s", email, password);
 
     ResponseEntity<String> response =
-        restTemplate.postForEntity(signupUrl + signupParams, null, String.class);
+        restTemplate.postForEntity(loginUrl + loginParams, null, String.class);
 
-    assertThat(response.getStatusCode())
-        .satisfiesAnyOf(
-            status -> assertThat(status).isEqualTo(HttpStatus.OK),
-            status -> assertThat(status).isEqualTo(HttpStatus.CREATED));
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
 
     JsonNode responseBody = objectMapper.readTree(response.getBody());
     assertThat(responseBody).isNotNull();
@@ -180,6 +182,7 @@ class AuthAPIIntegrationTest {
 
     String token = responseBody.get("access_token").asText();
     assertThat(token).isNotNull().isNotEmpty();
+    assertThat(token).startsWith("eyJ"); // JWT tokens start with eyJ
   }
 
   @Test
