@@ -101,10 +101,11 @@ class EventAPIIntegrationTest {
     }
   }
 
+  /** Tests successful creation of an event and verifies DB persistence */
   @Test
   @Order(1)
   @DisplayName("Integration: Create Event → Verify Database Storage → Retrieve via API")
-  void shouldCreateEventAndVerifyFullWorkflow() {
+  void testCreateEvent() {
     System.out.println("=== TEST STARTED ===");
 
     EventsDto newEvent = createValidEventDto();
@@ -132,10 +133,11 @@ class EventAPIIntegrationTest {
     }
   }
 
+  /** Tests updating an event and checks DB reflects the changes */
   @Test
   @Order(2)
   @DisplayName("Integration: Update Event → Verify Database Changes → Confirm via API")
-  void shouldUpdateEventAndVerifyDatabaseChanges() {
+  void testUpdateEvent() {
     EventsDto originalEvent = createValidEventDto();
     originalEvent.setTitle("Original Event");
     originalEvent.setCapacity(50);
@@ -172,10 +174,11 @@ class EventAPIIntegrationTest {
     assertThat(updatedAt).isNotNull();
   }
 
+  /** Tests filtering events by hostUuid and validates DB results */
   @Test
   @Order(3)
   @DisplayName("Integration: Filter Events by Host → Verify Database Query → API Response")
-  void shouldFilterEventsByHostAndVerifyDatabaseQuery() {
+  void testFilterByHost() {
     EventsDto event1 = createValidEventDto();
     event1.setTitle("Host1 Event 1");
     event1.setCapacity(50);
@@ -217,10 +220,11 @@ class EventAPIIntegrationTest {
     assertThat(host1Count).isEqualTo(2);
   }
 
+  /** Tests deleting an event and verifies it is removed from DB */
   @Test
   @Order(4)
   @DisplayName("Integration: Delete Event → Verify Database Removal → Confirm 404 Response")
-  void shouldDeleteEventAndVerifyDatabaseRemoval() {
+  void testDeleteEvent() {
     EventsDto eventToDelete = createValidEventDto();
     eventToDelete.setTitle("Event to Delete");
 
@@ -270,10 +274,11 @@ class EventAPIIntegrationTest {
     assertThat(getResponse.getStatusCode()).isIn(HttpStatus.NOT_FOUND, HttpStatus.FORBIDDEN);
   }
 
+  /** Tests invalid input handling and ensures DB rollback occurs */
   @Test
   @Order(5)
   @DisplayName("Integration: Validation Errors → Database Rollback → Error Response")
-  void shouldHandleValidationErrorsWithDatabaseRollback() {
+  void testValidationRollback() {
     EventsDto invalidEvent = new EventsDto();
     invalidEvent.setTitle("");
     invalidEvent.setCapacity(-10);
@@ -293,10 +298,11 @@ class EventAPIIntegrationTest {
     assertThat(countAfter).isEqualTo(countBefore);
   }
 
+  /** Tests retrieval of all events and validates response correctness */
   @Test
   @Order(6)
   @DisplayName("Integration: Get All Events → Database Query → Pagination Response")
-  void shouldGetAllEventsFromDatabaseWithCorrectResponse() {
+  void testGetAllEvents() {
     EventsDto event1 = createValidEventDto();
     event1.setTitle("Test Event 1");
     event1.setCapacity(51);
@@ -350,10 +356,11 @@ class EventAPIIntegrationTest {
                     && event.getCreatedAt() != null);
   }
 
+  /** Tests that endpoints reject unauthenticated access */
   @Test
   @Order(7)
   @DisplayName("Integration: Authentication Flow → Security → Database Access")
-  void shouldEnforceAuthenticationForDatabaseAccess() {
+  void testAuthRequired() {
     HttpHeaders noAuthHeaders = new HttpHeaders();
     noAuthHeaders.setContentType(MediaType.APPLICATION_JSON);
     HttpEntity<Void> unauthenticatedRequest = new HttpEntity<>(noAuthHeaders);
@@ -369,10 +376,11 @@ class EventAPIIntegrationTest {
     assertThat(authResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
   }
 
+  /** Tests concurrent operations and ensures DB consistency is maintained */
   @Test
   @Order(8)
   @DisplayName("Integration: Concurrent Operations → Database Consistency → API Responses")
-  void shouldHandleConcurrentOperationsWithDatabaseConsistency() {
+  void testConcurrentAccess() {
     EventsDto concurrentEvent = createValidEventDto();
     concurrentEvent.setTitle("Concurrent Test Event");
 
@@ -396,26 +404,6 @@ class EventAPIIntegrationTest {
     String sql = "SELECT title FROM events WHERE id = ?";
     String dbTitle = jdbcTemplate.queryForObject(sql, String.class, eventId);
     assertThat(dbTitle).isEqualTo("Concurrent Test Event");
-  }
-
-  private void setupTestEventData() {
-    String insertSql =
-        """
-            INSERT INTO events (id, title, host_id, capacity, start_time, end_time, description, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        """;
-
-    LocalDateTime now = LocalDateTime.now();
-    jdbcTemplate.update(
-        insertSql,
-        UUID.randomUUID(),
-        "Test Event",
-        testHostUuid,
-        50,
-        now.plusDays(1),
-        now.plusDays(1).plusHours(2),
-        "Test event description",
-        now);
   }
 
   private EventsDto createValidEventDto() {
