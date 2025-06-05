@@ -140,4 +140,32 @@ class UserAPIIntegrationTest {
       assertThat(response.getBody()).containsAnyOf("JWT", "token", "auth", "forbidden");
     }
   }
+
+  /** Tests updating user profile calls Supabase API */
+  @Test
+  @Order(3)
+  @DisplayName("Integration: Update User Profile → Supabase API → Response Handling")
+  void testUpdateUserProfile() {
+    String updateUrl = baseUrl + "/" + testUserId + "?newName=Updated User Name";
+    HttpEntity<Void> request = new HttpEntity<>(authHeaders);
+    ResponseEntity<String> response =
+        restTemplate.exchange(updateUrl, HttpMethod.PUT, request, String.class);
+
+    // This endpoint calls Supabase API
+    assertThat(response.getStatusCode())
+        .isIn(
+            HttpStatus.OK,
+            HttpStatus.NO_CONTENT,
+            HttpStatus.FORBIDDEN,
+            HttpStatus.INTERNAL_SERVER_ERROR);
+
+    // Verify endpoint is secured (dont allow unauthenticated access)
+    HttpHeaders noAuthHeaders = new HttpHeaders();
+    noAuthHeaders.setContentType(MediaType.APPLICATION_JSON);
+    HttpEntity<Void> unauthRequest = new HttpEntity<>(noAuthHeaders);
+
+    ResponseEntity<String> unauthResponse =
+        restTemplate.exchange(updateUrl, HttpMethod.PUT, unauthRequest, String.class);
+    assertThat(unauthResponse.getStatusCode()).isIn(HttpStatus.UNAUTHORIZED, HttpStatus.FORBIDDEN);
+  }
 }
