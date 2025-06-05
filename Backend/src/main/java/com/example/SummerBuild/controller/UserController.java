@@ -102,7 +102,7 @@ public class UserController {
     List<UserDto> users = userService.findByRole(role);
 
     // ========== CONTROLLER DEBUG ==========
-    System.out.println("========== CONTROLLER DEBUG ==========");
+    System.out.println("========== DEBUGGING FOR CONTROLLER ==========");
     System.out.println("Service returned " + users.size() + " users");
 
     if (!users.isEmpty()) {
@@ -133,7 +133,7 @@ public class UserController {
     }
 
     System.out.println("About to return ResponseEntity.ok() with " + users.size() + " users");
-    System.out.println("=======================================");
+    System.out.println("===============================================");
 
     return ResponseEntity.ok(users);
   }
