@@ -36,7 +36,7 @@ permissions:
 
 env:
   JAVA_VERSION: '21'
-  DB_NAME: ${{ secrets.POSTGRES_DB }}
+  DB_NAME: "testdb_${{ github.run_id }}"  # Unique DB per run to counter @Commit
   DB_USER: ${{ secrets.POSTGRES_USER }}
   DB_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
 
