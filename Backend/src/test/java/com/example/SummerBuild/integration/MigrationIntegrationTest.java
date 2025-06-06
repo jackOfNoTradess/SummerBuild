@@ -10,7 +10,11 @@ import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.FilterType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -18,8 +22,15 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
-@SpringBootTest(classes = {MigrationIntegrationTest.TestConfig.class})
+@SpringBootTest(
+    classes = {MigrationIntegrationTest.TestConfig.class},
+    properties = {
+      "spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration",
+      "supabase.auth.enabled=false",
+      "spring.main.allow-bean-definition-overriding=true"
+    })
 @ActiveProfiles("flyway-test")
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Testcontainers
 public class MigrationIntegrationTest {
 
@@ -104,8 +115,17 @@ public class MigrationIntegrationTest {
     }
   }
 
-  @org.springframework.boot.test.context.TestConfiguration
+  @Configuration
+  @ComponentScan(
+      excludeFilters = {
+        @ComponentScan.Filter(
+            type = FilterType.REGEX,
+            pattern = "com\\.example\\.SummerBuild\\.controller\\..*"),
+        @ComponentScan.Filter(
+            type = FilterType.REGEX,
+            pattern = "com\\.example\\.SummerBuild\\.service\\..*")
+      })
   static class TestConfig {
-    // Empty configuration - we only need the database
+    // Test configuration
   }
 }
