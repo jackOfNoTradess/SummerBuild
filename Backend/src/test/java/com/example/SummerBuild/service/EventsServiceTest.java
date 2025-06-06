@@ -54,7 +54,6 @@ class EventsServiceTest {
         .endTime(LocalDateTime.now().plusDays(1).plusHours(2))
         .description("Test event description")
         .tags(Arrays.asList("test", "event"))
-        .picPath("/images/test.jpg")
         .build();
   }
 
@@ -68,7 +67,6 @@ class EventsServiceTest {
     dto.setEndTime(LocalDateTime.now().plusDays(1).plusHours(2));
     dto.setDescription("Test event description");
     dto.setTags(Arrays.asList("test", "event"));
-    dto.setPicPath("/images/test.jpg");
     return dto;
   }
 

@@ -46,7 +46,4 @@ public class Events extends BaseEntity {
   private List<String> tags;
 
   // Using List instead of Set for simplicity with Hibernate
-
-  @Column(name = "pic_path", length = 255)
-  private String picPath;
 }

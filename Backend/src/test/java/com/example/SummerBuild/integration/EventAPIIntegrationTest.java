@@ -426,7 +426,6 @@ class EventAPIIntegrationTest {
     event.setEndTime(LocalDateTime.now().plusDays(1).plusHours(2));
     event.setDescription("Integration test event description");
     event.setTags(Arrays.asList("test", "integration"));
-    event.setPicPath("/images/test-event.jpg");
     event.setHostUuid(testHostUuid);
     return event;
   }

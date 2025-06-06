@@ -39,7 +39,6 @@ class EventsRepositoryTest {
             .endTime(LocalDateTime.now().plusDays(1).plusHours(2))
             .description("First test event")
             .tags(Arrays.asList("test", "event1"))
-            .picPath("/images/event1.jpg")
             .build();
 
     event2 =
@@ -52,7 +51,6 @@ class EventsRepositoryTest {
             .endTime(LocalDateTime.now().plusDays(2).plusHours(3))
             .description("Second test event")
             .tags(Arrays.asList("test", "event2"))
-            .picPath("/images/event2.jpg")
             .build();
 
     event3 =
@@ -65,7 +63,6 @@ class EventsRepositoryTest {
             .endTime(LocalDateTime.now().plusDays(3).plusHours(4))
             .description("Third test event")
             .tags(Arrays.asList("test", "event3"))
-            .picPath("/images/event3.jpg")
             .build();
 
     eventsRepository.saveAll(Arrays.asList(event1, event2, event3));
@@ -232,7 +229,6 @@ class EventsRepositoryTest {
     assertThat(savedEvent.getCapacity()).isNull();
     assertThat(savedEvent.getDescription()).isNull();
     assertThat(savedEvent.getTags()).isNull();
-    assertThat(savedEvent.getPicPath()).isNull();
   }
 
   @Test

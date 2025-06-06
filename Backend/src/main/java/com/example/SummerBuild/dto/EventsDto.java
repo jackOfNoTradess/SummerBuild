@@ -47,7 +47,4 @@ public class EventsDto extends BaseDto {
   private String description;
 
   private List<String> tags;
-
-  @Size(max = 255, message = "Picture path must not exceed 255 characters")
-  private String picPath;
 }

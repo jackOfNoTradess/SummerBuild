@@ -39,7 +39,6 @@ class EventsMapperTest {
             .endTime(endTime)
             .description("Test description")
             .tags(Arrays.asList("test", "event"))
-            .picPath("/images/test.jpg")
             .build();
     event.setCreatedAt(now);
     event.setUpdatedAt(now);
@@ -55,7 +54,6 @@ class EventsMapperTest {
     assertEquals(event.getEndTime(), dto.getEndTime());
     assertEquals(event.getDescription(), dto.getDescription());
     assertEquals(event.getTags(), dto.getTags());
-    assertEquals(event.getPicPath(), dto.getPicPath());
     assertEquals(event.getCreatedAt(), dto.getCreatedAt());
     assertEquals(event.getUpdatedAt(), dto.getUpdatedAt());
   }
@@ -84,7 +82,6 @@ class EventsMapperTest {
     dto.setEndTime(endTime);
     dto.setDescription("Test description");
     dto.setTags(Arrays.asList("test", "event"));
-    dto.setPicPath("/images/test.jpg");
 
     Events entity = eventsMapper.toEntity(dto);
 
@@ -97,7 +94,6 @@ class EventsMapperTest {
     assertEquals(dto.getEndTime(), entity.getEndTime());
     assertEquals(dto.getDescription(), entity.getDescription());
     assertEquals(dto.getTags(), entity.getTags());
-    assertEquals(dto.getPicPath(), entity.getPicPath());
   }
 
   @Test
@@ -138,7 +134,6 @@ class EventsMapperTest {
             .endTime(originalTime.plusHours(1))
             .description("Original description")
             .tags(Arrays.asList("original"))
-            .picPath("/images/original.jpg")
             .build();
 
     EventsDto dto = new EventsDto();
@@ -148,7 +143,6 @@ class EventsMapperTest {
     dto.setEndTime(originalTime.plusDays(1).plusHours(2));
     dto.setDescription("Updated description");
     dto.setTags(Arrays.asList("updated", "test"));
-    dto.setPicPath("/images/updated.jpg");
 
     eventsMapper.updateEntityFromDto(dto, entity);
 
@@ -158,7 +152,6 @@ class EventsMapperTest {
     assertEquals(dto.getEndTime(), entity.getEndTime());
     assertEquals("Updated description", entity.getDescription());
     assertEquals(Arrays.asList("updated", "test"), entity.getTags());
-    assertEquals("/images/updated.jpg", entity.getPicPath());
     // ID and host should remain unchanged
     assertEquals(eventId, entity.getId());
     assertEquals(hostId, entity.getHost_uuid());
@@ -251,7 +244,6 @@ class EventsMapperTest {
             .endTime(now.plusDays(1).plusHours(2))
             .description("Test description")
             .tags(Arrays.asList("test", "event"))
-            .picPath("/images/test.jpg")
             .build();
     originalEntity.setCreatedAt(now);
     originalEntity.setUpdatedAt(now);
@@ -268,6 +260,5 @@ class EventsMapperTest {
     assertEquals(originalEntity.getEndTime(), convertedEntity.getEndTime());
     assertEquals(originalEntity.getDescription(), convertedEntity.getDescription());
     assertEquals(originalEntity.getTags(), convertedEntity.getTags());
-    assertEquals(originalEntity.getPicPath(), convertedEntity.getPicPath());
   }
 }

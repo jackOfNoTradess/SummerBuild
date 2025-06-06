@@ -77,7 +77,6 @@ class EventsControllerTest {
     dto.setEndTime(LocalDateTime.now().plusDays(1).plusHours(2));
     dto.setDescription("Test event description");
     dto.setTags(Arrays.asList("test", "event"));
-    dto.setPicPath("/images/test.jpg");
     dto.setCreatedAt(LocalDateTime.now());
     dto.setUpdatedAt(LocalDateTime.now());
     return dto;

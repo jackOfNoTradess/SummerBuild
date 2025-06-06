@@ -3,19 +3,14 @@ package com.example.SummerBuild.controller;
 import com.example.SummerBuild.dto.EventsDto;
 import com.example.SummerBuild.service.EventsService;
 import com.example.SummerBuild.util.FileLoaderService;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Encoding;
-import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 
-import java.io.File;
 import java.util.List;
 import java.util.UUID;
-import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -58,8 +53,7 @@ public class EventsController {
   public ResponseEntity<EventsDto> createEvent(
       @RequestPart(value = "files") List<MultipartFile> files,
       @Valid @RequestPart(value = "event") EventsDto eventsDto,
-      Authentication authentication,
-      HttpServletRequest request) {
+      Authentication authentication) {
 
     logger.info("=== CONTROLLER REACHED ===");
     logger.info("POST /api/events - Creating new event with title: {}", eventsDto.getTitle());
@@ -74,18 +68,9 @@ public class EventsController {
 
     UUID eventUuid = createdEvent.getId();
 
-    String jwtToken = null;
-    String authHeader = request.getHeader("Authorization");
-
-    if (authHeader != null && authHeader.startsWith("Bearer ")) {
-      jwtToken = authHeader.substring(7);
-      logger.info("Extracted JWT token: {}", jwtToken);
-    } else {
-      logger.warn("Authorization header missing or malformed.");
-    }
 
     logger.info("inserting images for event into bucket: {}", eventUuid);
-    String serverReply = fileLoaderService.uploadFile(files, eventUuid, jwtToken);
+    String serverReply = fileLoaderService.uploadFile(files, eventUuid, hostUuid);
     if (serverReply == null || !serverReply.equals("Files uploaded successfully")) {
       logger.error("File upload failed for event: {}. Server response: {}", eventUuid, serverReply);
       logger.error("File upload failed: {}", serverReply != null ? serverReply : "Unknown error");
