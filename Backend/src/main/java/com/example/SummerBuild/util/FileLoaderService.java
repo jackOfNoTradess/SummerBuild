@@ -16,6 +16,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatusCode;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
 
 @Service
 public class FileLoaderService {
@@ -87,25 +89,41 @@ public class FileLoaderService {
                         fullFilePath,
                         HttpMethod.PUT,
                         requestEntity,
-                        String.class
-                );
+                        String.class);
 
-                // TODO: improve status code handling
+                // Handle successful response
                 HttpStatusCode statusCode = response.getStatusCode();
                 if (statusCode.is2xxSuccessful()) {
                     logger.info("File uploaded successfully with status code: {}", statusCode.value());
-                } else if (statusCode.value() == 409) {
+                } else {
+                    logger.warn("Unexpected status code: {}", statusCode.value());
+                    return "Upload failed with unexpected status: " + statusCode.value();
+                }
+
+            } catch (HttpClientErrorException e) {
+                // Handle 4xx errors
+                HttpStatusCode statusCode = e.getStatusCode();
+                if (statusCode.value() == 409) {
                     logger.warn("File already exists: {}", fileName);
                     return "File already exists, upload failed. File failed: " + fileName;
-                } else if (statusCode.is4xxClientError()) {
-                    logger.error("Client error during file upload: {}", response.getBody());
+                } else if (statusCode.value() == 403) {
+                    logger.error("Client auth error during file upload: {} - {}", statusCode.value(),
+                            e.getResponseBodyAsString());
                     return "Upload failed with client error: " + statusCode.value();
-                } else if (statusCode.is5xxServerError()) {
-                    logger.error("Server error during file upload: {}", response.getBody());
-                    return "Upload failed with server error: " + statusCode.value();
+                } else {
+                    logger.error("Client error during file upload: {} - {}", statusCode.value(),
+                            e.getResponseBodyAsString());
+                    return "Upload failed with client error: " + statusCode.value();
                 }
+            } catch (HttpServerErrorException e) {
+                // Handle 5xx errors
+                HttpStatusCode statusCode = e.getStatusCode();
+                logger.error("Server error during file upload: {} - {}", statusCode.value(),
+                        e.getResponseBodyAsString());
+                return "Upload failed with server error: " + statusCode.value();
             } catch (Exception e) {
                 logger.error("Failed to upload file due to exception: {}", e.getMessage());
+                return "Upload failed due to unexpected error: " + e.getMessage();
             }
         }
         logger.info("All files uploaded successfully for event: {}", eventId);
