@@ -73,6 +73,9 @@ jobs:
       db-port: 5432
 
     steps:
+      - name: "Set up Docker"
+        uses: docker/setup-buildx-action@v3
+
       - name: "Getting Code"
         uses: actions/checkout@v4
         with:
@@ -285,6 +288,62 @@ jobs:
           echo ""
           echo "=============================================="
 
+      - name: "Create CI-specific test configuration"
+        run: |
+          echo "Creating CI-specific test configuration for PostgreSQL..."
+          
+          TEST_CONFIG_DIR="src/test/resources"
+          CI_CONFIG_FILE="$TEST_CONFIG_DIR/application-ci.properties"
+          FLYWAY_TEST_CONFIG="$TEST_CONFIG_DIR/application-flyway-test.properties"
+          
+          # Create directory if it doesn't exist
+          mkdir -p $TEST_CONFIG_DIR
+          
+          # Create CI-specific configuration that uses PostgreSQL
+          cat > $CI_CONFIG_FILE << EOF
+          # CI-specific Test Database Configuration (PostgreSQL)
+          spring.datasource.url=jdbc:postgresql://localhost:5432/$DB_NAME
+          spring.datasource.username=$DB_USER
+          spring.datasource.password=$DB_PASSWORD
+          spring.datasource.driver-class-name=org.postgresql.Driver
+          
+          # Hibernate Configuration for PostgreSQL
+          spring.jpa.hibernate.ddl-auto=create-drop
+          spring.jpa.database-platform=org.hibernate.dialect.PostgreSQLDialect
+          spring.jpa.show-sql=true
+          spring.jpa.properties.hibernate.format_sql=true
+          
+          # Server Configuration for CI
+          server.port=0
+          
+          # Test Configuration
+          logging.level.org.springframework.web=DEBUG
+          logging.level.com.example.SummerBuild=DEBUG
+          logging.level.org.springframework.security=DEBUG
+          logging.level.org.springframework.boot.web.embedded.tomcat=INFO
+          
+          # Bean override configuration
+          spring.main.allow-bean-definition-overriding=true
+          EOF
+
+          # Create Flyway test configuration
+          cat > $FLYWAY_TEST_CONFIG << EOF
+          # Flyway Test Configuration
+          spring.flyway.enabled=true
+          spring.flyway.locations=classpath:db/migration
+          spring.flyway.clean-disabled=false
+          spring.flyway.baseline-on-migrate=true
+          spring.flyway.validate-on-migrate=true
+          spring.flyway.schemas=public
+          spring.flyway.default-schema=public
+          EOF
+          
+          echo "CI-specific test configuration created:"
+          cat $CI_CONFIG_FILE
+          echo ""
+          echo "Flyway test configuration created:"
+          cat $FLYWAY_TEST_CONFIG
+
   integration-tests:
       name: "Integration Tests"
       runs-on: ubuntu-latest
@@ -328,9 +387,9 @@ jobs:
           run: |
             echo "Creating CI-specific test configuration for PostgreSQL..."
             
-            # Create a CI-specific properties file that will override the H2 settings
             TEST_CONFIG_DIR="src/test/resources"
             CI_CONFIG_FILE="$TEST_CONFIG_DIR/application-ci.properties"
+            FLYWAY_TEST_CONFIG="$TEST_CONFIG_DIR/application-flyway-test.properties"
             
             # Create directory if it doesn't exist
             mkdir -p $TEST_CONFIG_DIR
@@ -352,44 +411,33 @@ jobs:
             # Server Configuration for CI
             server.port=0
             
-            # Enable Flyway for migration testing
-            spring.flyway.enabled=true
-            spring.flyway.locations=classpath:db/migration
-            spring.flyway.clean-disabled=false
-            spring.flyway.baseline-on-migrate=true
-            spring.flyway.validate-on-migrate=true
-            
             # Test Configuration
             logging.level.org.springframework.web=DEBUG
             logging.level.com.example.SummerBuild=DEBUG
             logging.level.org.springframework.security=DEBUG
             logging.level.org.springframework.boot.web.embedded.tomcat=INFO
             
-            # Supabase Test Configuration (same as local)
-            supabase.auth.url=\${SUPABASE_URL:http://localhost:54321}
-            supabase.anonKey=\${SUPABASE_ANON_KEY:dummyAnonKey}
-            supabase.jwtSecret=\${SUPABASE_JWT_SECRET:c3VwZXItc2VjcmV0LWp3dC10b2tlbi13aXRoLWF0LWxlYXN0LTMyLWNoYXJhY3RlcnMtbG9uZw==}
-            supabase.serviceKey=\${SUPABASE_SERVICE_KEY:dummyServiceKey}
-            
             # Bean override configuration
             spring.main.allow-bean-definition-overriding=true
+            EOF
+
+            # Create Flyway test configuration
+            cat > $FLYWAY_TEST_CONFIG << EOF
+            # Flyway Test Configuration
+            spring.flyway.enabled=true
+            spring.flyway.locations=classpath:db/migration
+            spring.flyway.clean-disabled=false
+            spring.flyway.baseline-on-migrate=true
+            spring.flyway.validate-on-migrate=true
+            spring.flyway.schemas=public
+            spring.flyway.default-schema=public
             EOF
             
             echo "CI-specific test configuration created:"
             cat $CI_CONFIG_FILE
             echo ""
-            echo "Local H2 configuration preserved in application-test.properties"
-            
-            # Show the difference
-            echo ""
-            echo "=== LOCAL vs CI CONFIGURATION ==="
-            echo "Local (H2): Uses application-test.properties"
-            echo "CI (PostgreSQL): Uses application-ci.properties"
-            echo "================================="
-          env:
-            DB_NAME: ${{ env.DB_NAME }}
-            DB_USER: ${{ env.DB_USER }}
-            DB_PASSWORD: ${{ env.DB_PASSWORD }}
+            echo "Flyway test configuration created:"
+            cat $FLYWAY_TEST_CONFIG
 
         - name: "Wait for PostgreSQL to be ready"
           run: |
@@ -430,13 +478,9 @@ jobs:
             echo "=============================================="
             echo ""
             echo "Database: PostgreSQL (localhost:5432) - Real integration testing"
-            echo "Local Development: H2 in-memory (preserved)"
-            echo "Spring Profiles: test,ci"
-            echo "Infrastructure verified by previous job"
+            echo "Spring Profiles: test,ci,flyway-test"
             echo ""
             
-            # Run with both test and ci profiles
-            # ci profile will override H2 settings with PostgreSQL
             mvn test \
               -Dspring.profiles.active=test,ci,flyway-test \
               -Dtest="**/*IntegrationTest" \
@@ -449,6 +493,7 @@ jobs:
             DB_NAME: ${{ env.DB_NAME }}
             DB_USER: ${{ env.DB_USER }}
             DB_PASSWORD: ${{ env.DB_PASSWORD }}
+            CI: true  # Set CI environment variable
 
         - name: "Debug Test Reports Location"
           if: always()

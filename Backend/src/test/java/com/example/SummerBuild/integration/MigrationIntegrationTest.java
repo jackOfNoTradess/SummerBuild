@@ -34,19 +34,25 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @Testcontainers
 public class MigrationIntegrationTest {
 
+  private static final boolean IS_CI = System.getenv("CI") != null;
+
   @Container
   private static final PostgreSQLContainer<?> postgres =
-      new PostgreSQLContainer<>("postgres:15")
-          .withDatabaseName("testdb")
-          .withUsername("test")
-          .withPassword("test")
-          .withReuse(true);
+      IS_CI
+          ? null
+          : new PostgreSQLContainer<>("postgres:15")
+              .withDatabaseName("testdb")
+              .withUsername("test")
+              .withPassword("test")
+              .withReuse(true);
 
   @DynamicPropertySource
   static void configureProperties(DynamicPropertyRegistry registry) {
-    registry.add("spring.datasource.url", postgres::getJdbcUrl);
-    registry.add("spring.datasource.username", postgres::getUsername);
-    registry.add("spring.datasource.password", postgres::getPassword);
+    if (!IS_CI) {
+      registry.add("spring.datasource.url", postgres::getJdbcUrl);
+      registry.add("spring.datasource.username", postgres::getUsername);
+      registry.add("spring.datasource.password", postgres::getPassword);
+    }
   }
 
   @Autowired private DataSource dataSource;
@@ -64,7 +70,7 @@ public class MigrationIntegrationTest {
 
   @Test
   void testAllMigrationsApplySuccessfully() {
-    Flyway flyway = Flyway.configure().dataSource(dataSource).load();
+    Flyway flyway = Flyway.configure().dataSource(dataSource).cleanDisabled(false).load();
     try {
       flyway.migrate();
       assertTrue(true, "Migrations applied successfully");
@@ -94,7 +100,7 @@ public class MigrationIntegrationTest {
 
   @Test
   void testMigrationPerformance() {
-    Flyway flyway = Flyway.configure().dataSource(dataSource).load();
+    Flyway flyway = Flyway.configure().dataSource(dataSource).cleanDisabled(false).load();
     try {
       // Measure migration execution time
       long startTime = System.currentTimeMillis();
