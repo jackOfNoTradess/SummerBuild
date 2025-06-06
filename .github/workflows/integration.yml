@@ -434,8 +434,8 @@ jobs:
             # Run with both test and ci profiles
             # ci profile will override H2 settings with PostgreSQL
             mvn test \
-              -Dspring.profiles.active=test \
-              -Dtest="EventAPIIntegrationTest" \
+              -Dspring.profiles.active=test,ci \
+              -Dtest="**/*IntegrationTest" \
               -B
             
             echo ""
@@ -466,16 +466,29 @@ jobs:
             echo "       INTEGRATION TEST RESULTS SUMMARY       "
             echo "=============================================="
             echo ""
-            if [ -f "target/surefire-reports/TEST-*.xml" ]; then
-              echo "Test reports generated:"
-              ls -la target/surefire-reports/TEST-*IntegrationTest.xml 2>/dev/null || echo "No integration test reports found"
+            
+            # Check if surefire-reports directory exists
+            if [ -d "target/surefire-reports" ]; then
+              echo "Test reports found in target/surefire-reports/:"
+              ls -la target/surefire-reports/
               
-              # Show test summary
+              # Show test summary for all XML files
               echo ""
-              echo "Test Results:"
-              grep -h "tests=" target/surefire-reports/TEST-*IntegrationTest.xml 2>/dev/null | head -5 || echo "Could not extract test summary"
+              echo "Test Results Summary:"
+              for xml_file in target/surefire-reports/TEST-*.xml; do
+                if [ -f "$xml_file" ]; then
+                  echo "----------------------------------------------"
+                  echo "Test Suite: $(basename "$xml_file")"
+                  echo "----------------------------------------------"
+                  grep -h "tests=" "$xml_file" | head -1
+                  grep -h "failures=" "$xml_file" | head -1
+                  grep -h "errors=" "$xml_file" | head -1
+                  grep -h "skipped=" "$xml_file" | head -1
+                  echo ""
+                fi
+              done
             else
-              echo "No test reports directory found"
+              echo "No test reports directory found at target/surefire-reports/"
             fi
             echo ""
             echo "=============================================="
