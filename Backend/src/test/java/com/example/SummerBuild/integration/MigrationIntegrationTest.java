@@ -4,9 +4,11 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import java.sql.Connection;
 import java.sql.Statement;
+import java.time.Duration;
+import java.time.Instant;
 import javax.sql.DataSource;
-import org.assertj.core.api.Assertions;
 import org.flywaydb.core.Flyway;
+import org.flywaydb.core.api.configuration.FluentConfiguration;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -70,55 +72,75 @@ public class MigrationIntegrationTest {
 
   @Test
   void testAllMigrationsApplySuccessfully() {
-    Flyway flyway = Flyway.configure().dataSource(dataSource).cleanDisabled(false).load();
-    try {
-      flyway.migrate();
-      assertTrue(true, "Migrations applied successfully");
-    } catch (Exception e) {
-      fail("Migration failed: " + e.getMessage(), e);
-    }
+    // Create Flyway instance
+    FluentConfiguration config =
+        Flyway.configure()
+            .dataSource(dataSource)
+            .locations("classpath:db/migration")
+            .cleanDisabled(false)
+            .baselineOnMigrate(true)
+            .validateOnMigrate(true);
+
+    Flyway flyway = config.load();
+
+    // Clean and migrate
+    flyway.clean();
+    flyway.migrate();
+
+    // Verify migration success
+    assertTrue(flyway.info().all().length > 0, "Should have applied migrations");
+    assertTrue(flyway.info().applied().length > 0, "Should have successful migrations");
   }
 
   @Test
   void testMigrationFailureAndRecovery() {
-    Flyway flyway = Flyway.configure().dataSource(dataSource).cleanDisabled(false).load();
-    try {
-      // Migration should succeed
-      flyway.migrate();
+    // Create Flyway instance
+    FluentConfiguration config =
+        Flyway.configure()
+            .dataSource(dataSource)
+            .locations("classpath:db/migration")
+            .cleanDisabled(false)
+            .baselineOnMigrate(true)
+            .validateOnMigrate(true);
 
-      // Clean the database
-      flyway.clean();
+    Flyway flyway = config.load();
 
-      // Try to migrate again - should succeed
-      flyway.migrate();
+    // Clean and migrate
+    flyway.clean();
+    flyway.migrate();
 
-      assertTrue(true, "Migration recovery successful");
-    } catch (Exception e) {
-      fail("Migration recovery failed: " + e.getMessage(), e);
-    }
+    // Verify migration success
+    assertTrue(flyway.info().all().length > 0, "Should have applied migrations");
+    assertTrue(flyway.info().applied().length > 0, "Should have successful migrations");
   }
 
   @Test
   void testMigrationPerformance() {
-    Flyway flyway = Flyway.configure().dataSource(dataSource).cleanDisabled(false).load();
-    try {
-      // Measure migration execution time
-      long startTime = System.currentTimeMillis();
-      flyway.migrate();
-      long endTime = System.currentTimeMillis();
-      long executionTime = endTime - startTime;
+    // Create Flyway instance
+    FluentConfiguration config =
+        Flyway.configure()
+            .dataSource(dataSource)
+            .locations("classpath:db/migration")
+            .cleanDisabled(false)
+            .baselineOnMigrate(true)
+            .validateOnMigrate(true);
 
-      System.out.println("Migration Performance Results:");
-      System.out.println("Total execution time: " + executionTime + "ms");
-      System.out.println("Number of migrations: " + flyway.info().applied().length);
-      System.out.println(
-          "Average time per migration: " + (executionTime / flyway.info().applied().length) + "ms");
+    Flyway flyway = config.load();
 
-      // Migrations complete within a reasonable time (maybe within 30 seconds)
-      Assertions.assertThat(executionTime).isLessThan(30000);
-    } catch (Exception e) {
-      fail("Migration performance test failed: " + e.getMessage(), e);
-    }
+    // Clean and migrate
+    flyway.clean();
+
+    // Measure migration time
+    Instant start = Instant.now();
+    flyway.migrate();
+    Instant end = Instant.now();
+
+    Duration duration = Duration.between(start, end);
+
+    // Verify migration success and performance
+    assertTrue(flyway.info().all().length > 0, "Should have applied migrations");
+    assertTrue(flyway.info().applied().length > 0, "Should have successful migrations");
+    assertTrue(duration.toMillis() < 5000, "Migration should complete within 5 seconds");
   }
 
   @Configuration

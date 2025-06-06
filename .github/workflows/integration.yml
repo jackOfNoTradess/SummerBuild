@@ -39,6 +39,7 @@ env:
   DB_NAME: "testdb_${{ github.run_id }}"  # Unique DB per run to counter @Commit
   DB_USER: ${{ secrets.POSTGRES_USER }}
   DB_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+  CI: true  # Set CI environment variable globally
 
 jobs:
   integration-setup: 
@@ -107,12 +108,14 @@ jobs:
           echo "DB_NAME: '${{ env.DB_NAME }}'"
           echo "DB_USER: '${{ env.DB_USER }}'"
           echo "DB_PASSWORD length: ${#DB_PASSWORD}"
+          echo "CI environment: $CI"
           echo "All environment variables that start with POSTGRES:"
           env | grep POSTGRES || echo "No POSTGRES variables found"
         env:
           DB_NAME: ${{ env.DB_NAME }}
           DB_USER: ${{ env.DB_USER }}
           DB_PASSWORD: ${{ env.DB_PASSWORD }}
+          CI: ${{ env.CI }}
 
       - name: "Stage 1 Information"
         if: |
@@ -479,6 +482,7 @@ jobs:
             echo ""
             echo "Database: PostgreSQL (localhost:5432) - Real integration testing"
             echo "Spring Profiles: test,ci,flyway-test"
+            echo "CI Environment: $CI"
             echo ""
             
             mvn test \
@@ -493,7 +497,7 @@ jobs:
             DB_NAME: ${{ env.DB_NAME }}
             DB_USER: ${{ env.DB_USER }}
             DB_PASSWORD: ${{ env.DB_PASSWORD }}
-            CI: true  # Set CI environment variable
+            CI: ${{ env.CI }}
 
         - name: "Debug Test Reports Location"
           if: always()
