@@ -4,9 +4,8 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import java.sql.Connection;
 import java.sql.Statement;
-import java.time.Duration;
-import java.time.Instant;
 import javax.sql.DataSource;
+import org.assertj.core.api.Assertions;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -55,7 +54,6 @@ public class MigrationIntegrationTest {
   @Test
   void testAllMigrationsApplySuccessfully() {
     Flyway flyway = Flyway.configure().dataSource(dataSource).load();
-
     try {
       flyway.migrate();
       assertTrue(true, "Migrations applied successfully");
@@ -67,7 +65,6 @@ public class MigrationIntegrationTest {
   @Test
   void testMigrationFailureAndRecovery() {
     Flyway flyway = Flyway.configure().dataSource(dataSource).cleanDisabled(false).load();
-
     try {
       // Migration should succeed
       flyway.migrate();
@@ -87,16 +84,21 @@ public class MigrationIntegrationTest {
   @Test
   void testMigrationPerformance() {
     Flyway flyway = Flyway.configure().dataSource(dataSource).load();
-
     try {
-      Instant start = Instant.now();
+      // Measure migration execution time
+      long startTime = System.currentTimeMillis();
       flyway.migrate();
-      Instant end = Instant.now();
+      long endTime = System.currentTimeMillis();
+      long executionTime = endTime - startTime;
 
-      Duration duration = Duration.between(start, end);
-      assertTrue(
-          duration.toSeconds() < 30,
-          "Migration took too long: " + duration.toSeconds() + " seconds");
+      System.out.println("Migration Performance Results:");
+      System.out.println("Total execution time: " + executionTime + "ms");
+      System.out.println("Number of migrations: " + flyway.info().applied().length);
+      System.out.println(
+          "Average time per migration: " + (executionTime / flyway.info().applied().length) + "ms");
+
+      // Migrations complete within a reasonable time (maybe within 30 seconds)
+      Assertions.assertThat(executionTime).isLessThan(30000);
     } catch (Exception e) {
       fail("Migration performance test failed: " + e.getMessage(), e);
     }
