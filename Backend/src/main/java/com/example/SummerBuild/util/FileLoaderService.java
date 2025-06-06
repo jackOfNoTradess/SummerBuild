@@ -53,7 +53,7 @@ public class FileLoaderService {
         return "file name is empty, upload failed";
       }
 
-      String fullFilePath = buildFileUrl(eventUuid, fileName);
+      String fullFilePath = buildFileUrl(eventUuid.toString(), fileName);
       logger.info("Preparing to upload file: {}", fullFilePath);
 
       try {
@@ -92,14 +92,16 @@ public class FileLoaderService {
     return "Files uploaded successfully";
   }
 
-  public String getFilePath(String fileName) {
+  public String getFilePath(String eventId, String fileName) {
     // Only returns a path if the file exists
-    String filePath = buildFileUrl(null, fileName);
+
+    // TODO: return a string to view the file in the frontend
+    String filePath = buildFileUrl(eventId, fileName);
     return fileExists(filePath) ? filePath : null;
   }
 
-  public boolean deleteFile(String fileName) {
-    String filePath = buildFileUrl(null, fileName);
+  public boolean deleteFile(String eventId, String fileName) {
+    String filePath = buildFileUrl(eventId, fileName);
 
     if (!fileExists(filePath)) {
       logger.warn("File not found for deletion: {}", fileName);
@@ -154,10 +156,10 @@ public class FileLoaderService {
   }
 
   // helper methods
-  private String buildFileUrl(UUID eventUuid, String fileName) {
+  private String buildFileUrl(String eventUuid, String fileName) {
     String path = bucketName + "/";
     if (eventUuid != null) {
-      path += eventUuid.toString() + "/";
+      path += eventUuid + "/";
     }
     path += fileName;
     return supabaseUrl + "/storage/v1/object/" + path;

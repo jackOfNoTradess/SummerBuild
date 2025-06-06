@@ -68,7 +68,6 @@ public class EventsController {
 
     UUID eventUuid = createdEvent.getId();
 
-
     logger.info("inserting images for event into bucket: {}", eventUuid);
     String serverReply = fileLoaderService.uploadFile(files, eventUuid, hostUuid);
     if (serverReply == null || !serverReply.equals("Files uploaded successfully")) {
@@ -82,10 +81,40 @@ public class EventsController {
     return ResponseEntity.status(HttpStatus.CREATED).body(createdEvent);
   }
 
-  @PutMapping("/{id}")
+  @PutMapping(value = "/{id}", consumes = { MediaType.MULTIPART_FORM_DATA_VALUE })
+  @RequestBody(content = @Content(mediaType = MediaType.MULTIPART_FORM_DATA_VALUE, encoding = {
+      @Encoding(name = "event", contentType = MediaType.APPLICATION_JSON_VALUE),
+      @Encoding(name = "files", contentType = MediaType.APPLICATION_OCTET_STREAM_VALUE)
+  }))
   public ResponseEntity<EventsDto> updateEvent(
-      @PathVariable UUID id, @Valid @RequestBody EventsDto eventsDto) {
+      @RequestPart(value = "files", required = false) List<MultipartFile> files,
+      @PathVariable UUID id, @Valid @RequestPart(value = "event") EventsDto eventsDto,
+      Authentication authentication) {
     logger.info("PUT /api/events/{} - Updating event", id);
+
+    // Verify the authenticated user is the event host
+    UUID hostUuid = UUID.fromString(authentication.getName());
+    EventsDto event = eventsService.findById(id);
+
+    if (!event.getHostUuid().equals(hostUuid)) {
+      logger.warn("Unauthorized attempt to delete file by user: {}", hostUuid);
+      return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+    }
+
+    if (files != null && !files.isEmpty()) {
+      logger.info("Updating event with ID: {} and uploading new files", id);
+      String serverReply = fileLoaderService.uploadFile(files, id, hostUuid);
+      if (serverReply == null || !serverReply.equals("Files uploaded successfully")) {
+        logger.error("File upload failed for event: {}. Server response: {}", id, serverReply);
+
+        // same thing here, look at logs for more details cause i cant return a string
+        // here
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+      }
+    } else {
+      logger.info("No files provided for update of event with ID: {}", id);
+    }
+
     EventsDto updatedEvent = eventsService.update(id, eventsDto);
     return ResponseEntity.ok(updatedEvent);
   }
@@ -102,5 +131,49 @@ public class EventsController {
     logger.info("GET /api/events/host/{} - Fetching events by host", hostUuid);
     List<EventsDto> events = eventsService.findByHostUuid(hostUuid);
     return ResponseEntity.ok(events);
+  }
+
+  // need to return a string to view the file in the frontend
+  @GetMapping("/{eventId}/files/{fileName}")
+  public ResponseEntity<String> getEventFile(
+      @PathVariable UUID eventId,
+      @PathVariable String fileName) {
+    logger.info("GET /api/events/{}/files/{} - Fetching file", eventId, fileName);
+
+    // NOT DONE!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    String filePath = fileLoaderService.getFilePath(eventId.toString(), fileName);
+    if (filePath != null) {
+      return ResponseEntity.ok(filePath);
+    } else {
+      logger.warn("File not found: {} for event: {}", fileName, eventId);
+      return ResponseEntity.notFound().build();
+    }
+  }
+
+  // Done le
+  @DeleteMapping("/{eventId}/files/{fileName}")
+  public ResponseEntity<Void> deleteEventFile(
+      @PathVariable UUID eventId,
+      @PathVariable String fileName,
+      Authentication authentication) {
+    logger.info("DELETE /api/events/{}/files/{} - Deleting file", eventId, fileName);
+
+    // Verify the authenticated user is the event host
+    UUID hostUuid = UUID.fromString(authentication.getName());
+    EventsDto event = eventsService.findById(eventId);
+
+    if (!event.getHostUuid().equals(hostUuid)) {
+      logger.warn("Unauthorized attempt to delete file by user: {}", hostUuid);
+      return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+    }
+
+    boolean deleted = fileLoaderService.deleteFile(eventId.toString(), fileName);
+    if (deleted) {
+      logger.info("File deleted successfully: {}", fileName);
+      return ResponseEntity.noContent().build();
+    } else {
+      logger.error("Failed to delete file: {}", fileName);
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+    }
   }
 }
