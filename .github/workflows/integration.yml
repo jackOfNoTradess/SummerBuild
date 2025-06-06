@@ -40,6 +40,9 @@ env:
   DB_USER: ${{ secrets.POSTGRES_USER }}
   DB_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
   CI: true  # Set CI environment variable globally
+  SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/${{ env.DB_NAME }}
+  SPRING_DATASOURCE_USERNAME: ${{ env.DB_USER }}
+  SPRING_DATASOURCE_PASSWORD: ${{ env.DB_PASSWORD }}
 
 jobs:
   integration-setup: 
@@ -109,6 +112,9 @@ jobs:
           echo "DB_USER: '${{ env.DB_USER }}'"
           echo "DB_PASSWORD length: ${#DB_PASSWORD}"
           echo "CI environment: $CI"
+          echo "SPRING_DATASOURCE_URL: $SPRING_DATASOURCE_URL"
+          echo "SPRING_DATASOURCE_USERNAME: $SPRING_DATASOURCE_USERNAME"
+          echo "SPRING_DATASOURCE_PASSWORD length: ${#SPRING_DATASOURCE_PASSWORD}"
           echo "All environment variables that start with POSTGRES:"
           env | grep POSTGRES || echo "No POSTGRES variables found"
         env:
@@ -116,6 +122,9 @@ jobs:
           DB_USER: ${{ env.DB_USER }}
           DB_PASSWORD: ${{ env.DB_PASSWORD }}
           CI: ${{ env.CI }}
+          SPRING_DATASOURCE_URL: ${{ env.SPRING_DATASOURCE_URL }}
+          SPRING_DATASOURCE_USERNAME: ${{ env.SPRING_DATASOURCE_USERNAME }}
+          SPRING_DATASOURCE_PASSWORD: ${{ env.SPRING_DATASOURCE_PASSWORD }}
 
       - name: "Stage 1 Information"
         if: |
@@ -483,6 +492,7 @@ jobs:
             echo "Database: PostgreSQL (localhost:5432) - Real integration testing"
             echo "Spring Profiles: test,ci,flyway-test"
             echo "CI Environment: $CI"
+            echo "Database URL: $SPRING_DATASOURCE_URL"
             echo ""
             
             mvn test \
@@ -498,6 +508,9 @@ jobs:
             DB_USER: ${{ env.DB_USER }}
             DB_PASSWORD: ${{ env.DB_PASSWORD }}
             CI: ${{ env.CI }}
+            SPRING_DATASOURCE_URL: ${{ env.SPRING_DATASOURCE_URL }}
+            SPRING_DATASOURCE_USERNAME: ${{ env.SPRING_DATASOURCE_USERNAME }}
+            SPRING_DATASOURCE_PASSWORD: ${{ env.SPRING_DATASOURCE_PASSWORD }}
 
         - name: "Debug Test Reports Location"
           if: always()

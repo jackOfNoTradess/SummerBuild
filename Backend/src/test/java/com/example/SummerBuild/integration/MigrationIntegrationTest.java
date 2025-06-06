@@ -38,22 +38,18 @@ public class MigrationIntegrationTest {
 
   private static final boolean IS_CI = System.getenv("CI") != null;
 
-  @Container
-  private static final PostgreSQLContainer<?> postgres =
-      IS_CI
-          ? null
-          : new PostgreSQLContainer<>("postgres:15")
+  @Container private static final PostgreSQLContainer<?> postgres;
+
+  static {
+    if (IS_CI) {
+      postgres = null;
+    } else {
+      postgres =
+          new PostgreSQLContainer<>("postgres:15")
               .withDatabaseName("testdb")
               .withUsername("test")
-              .withPassword("test")
-              .withReuse(true);
-
-  @DynamicPropertySource
-  static void configureProperties(DynamicPropertyRegistry registry) {
-    if (!IS_CI) {
-      registry.add("spring.datasource.url", postgres::getJdbcUrl);
-      registry.add("spring.datasource.username", postgres::getUsername);
-      registry.add("spring.datasource.password", postgres::getPassword);
+              .withPassword("test");
+      postgres.start();
     }
   }
 
@@ -155,5 +151,14 @@ public class MigrationIntegrationTest {
       })
   static class TestConfig {
     // Test configuration
+  }
+
+  @DynamicPropertySource
+  static void configureProperties(DynamicPropertyRegistry registry) {
+    if (!IS_CI) {
+      registry.add("spring.datasource.url", postgres::getJdbcUrl);
+      registry.add("spring.datasource.username", postgres::getUsername);
+      registry.add("spring.datasource.password", postgres::getPassword);
+    }
   }
 }
