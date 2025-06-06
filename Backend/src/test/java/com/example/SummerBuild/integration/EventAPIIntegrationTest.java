@@ -1,11 +1,18 @@
 package com.example.SummerBuild.integration;
 
 import static org.assertj.core.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 import com.example.SummerBuild.config.EventsDtoTestByPass;
 import com.example.SummerBuild.config.TestAuthConfig;
 import com.example.SummerBuild.config.TestSecurityConfig;
 import com.example.SummerBuild.dto.EventsDto;
+import com.example.SummerBuild.model.Gender;
+import com.example.SummerBuild.model.User;
+import com.example.SummerBuild.model.UserRole;
+import com.example.SummerBuild.repository.UserRepository;
+import com.example.SummerBuild.service.UserService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDateTime;
@@ -16,6 +23,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
@@ -41,20 +49,53 @@ class EventAPIIntegrationTest {
 
   @LocalServerPort private int port;
 
+  @Autowired private UserRepository userRepository;
+
+  @MockBean private UserService userService;
+
   private String baseUrl;
   private HttpHeaders authHeaders;
   private UUID testHostUuid;
+  private String token;
 
   @BeforeEach
   void setUp() {
     baseUrl = "http://localhost:" + port + "/api/events";
     testHostUuid = signupAndGetUserId();
-    String jwtToken = loginAndGetToken();
+    token = loginAndGetToken();
 
     authHeaders = new HttpHeaders();
     authHeaders.setContentType(MediaType.APPLICATION_JSON);
-    authHeaders.setBearerAuth(jwtToken);
+    authHeaders.setBearerAuth(token);
     objectMapper.addMixIn(EventsDto.class, EventsDtoTestByPass.class);
+
+    // Clear existing data
+    userRepository.deleteAll();
+
+    // Create test user and get token
+    User testUser = new User();
+    testUser.setId(UUID.randomUUID());
+    testUser.setRole(UserRole.ADMIN);
+    testUser.setGender(Gender.MALE);
+    userRepository.save(testUser);
+
+    // Set up UserService mock
+    when(userService.getUserById(any(UUID.class)))
+        .thenAnswer(
+            invocation -> {
+              UUID id = invocation.getArgument(0);
+              return userRepository
+                  .findById(id)
+                  .map(
+                      user -> {
+                        String response =
+                            String.format(
+                                "{\"id\":\"%s\",\"role\":\"%s\",\"gender\":\"%s\"}",
+                                user.getId(), user.getRole(), user.getGender());
+                        return ResponseEntity.ok(response);
+                      })
+                  .orElse(ResponseEntity.notFound().build());
+            });
   }
 
   @AfterEach

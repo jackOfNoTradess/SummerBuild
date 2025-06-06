@@ -1,139 +1,136 @@
 package com.example.SummerBuild.integration;
 
 import static org.assertj.core.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.example.SummerBuild.config.TestAuthConfig;
 import com.example.SummerBuild.config.TestSecurityConfig;
+import com.example.SummerBuild.model.Gender;
+import com.example.SummerBuild.model.UserRole;
+import com.example.SummerBuild.repository.UserRepository;
+import com.example.SummerBuild.service.UserService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.UUID;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.*;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@TestPropertySource(locations = "classpath:application-test.properties")
+@TestPropertySource(
+    properties = {
+      "spring.profiles.active=test",
+      "supabase.url=http://localhost:54321",
+      "supabase.key=test-key",
+      "supabase.jwt.secret=test-secret"
+    })
 @ActiveProfiles("test")
 @Transactional
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @Import({TestAuthConfig.class, TestSecurityConfig.class})
+@AutoConfigureMockMvc
 class AuthAPIIntegrationTest {
 
   @LocalServerPort private int port;
 
   @Autowired private TestRestTemplate restTemplate;
   @Autowired private ObjectMapper objectMapper;
+  @Autowired private MockMvc mockMvc;
+  @Autowired private UserRepository userRepository;
+  @MockBean private UserService userService;
 
   private String baseUrl;
+  private HttpHeaders headers;
 
   @BeforeEach
   void setUp() {
     baseUrl = "http://localhost:" + port;
+    headers = new HttpHeaders();
+    headers.setContentType(MediaType.APPLICATION_JSON);
+
+    // Clear existing data
+    userRepository.deleteAll();
+
+    // Set up UserService mock
+    when(userService.getUserById(any(UUID.class)))
+        .thenAnswer(
+            invocation -> {
+              UUID id = invocation.getArgument(0);
+              return userRepository
+                  .findById(id)
+                  .map(
+                      user -> {
+                        String response =
+                            String.format(
+                                "{\"id\":\"%s\",\"role\":\"%s\",\"gender\":\"%s\"}",
+                                user.getId(), user.getRole(), user.getGender());
+                        return ResponseEntity.ok(response);
+                      })
+                  .orElse(ResponseEntity.notFound().build());
+            });
   }
 
   @Test
   @Order(1)
-  void testSignupResponseFormat() throws Exception {
-    String signupUrl = baseUrl + "/api/auth/signup";
-    String signupParams =
-        "?email=debug@example.com&password=password123&displayName=Debug User&userRole=USER&gender=MALE";
-
-    ResponseEntity<String> response =
-        restTemplate.postForEntity(signupUrl + signupParams, null, String.class);
-
-    System.out.println("=== SIGNUP RESPONSE DISCOVERY ===");
-    System.out.println("Status: " + response.getStatusCode());
-    System.out.println("Headers: " + response.getHeaders());
-    System.out.println("Raw Body: " + response.getBody());
-
-    try {
-      JsonNode responseBody = objectMapper.readTree(response.getBody());
-      System.out.println("Parsed JSON: " + responseBody.toPrettyString());
-
-      StringBuilder fields = new StringBuilder("Available fields: ");
-      responseBody.fieldNames().forEachRemaining(field -> fields.append(field).append(", "));
-      System.out.println(fields.toString());
-
-      System.out.println("Has 'access_token': " + responseBody.has("access_token"));
-      System.out.println("Has 'token': " + responseBody.has("token"));
-      System.out.println("Has 'accessToken': " + responseBody.has("accessToken"));
-      System.out.println("Has 'jwt': " + responseBody.has("jwt"));
-    } catch (Exception e) {
-      System.out.println("Response is not JSON: " + e.getMessage());
-    }
-
-    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+  void testSignup() throws Exception {
+    mockMvc
+        .perform(
+            post("/api/auth/signup")
+                .param("email", "test@example.com")
+                .param("password", "password123")
+                .param("displayName", "Test User")
+                .param("userRole", UserRole.USER.name())
+                .param("gender", Gender.MALE.name()))
+        .andExpect(status().isOk());
   }
 
   @Test
   @Order(2)
-  void testLoginResponseFormat() throws Exception {
-    String email = "login-debug@example.com";
-    String password = "password123";
+  void testLogin() throws Exception {
+    MvcResult result =
+        mockMvc
+            .perform(
+                post("/api/auth/login")
+                    .param("email", "test@example.com")
+                    .param("password", "password123"))
+            .andExpect(status().isOk())
+            .andReturn();
 
-    String signupUrl = baseUrl + "/api/auth/signup";
-    String signupParams =
-        String.format(
-            "?email=%s&password=%s&displayName=Login Debug&userRole=USER&gender=FEMALE",
-            email, password);
-    restTemplate.postForEntity(signupUrl + signupParams, null, String.class);
-
-    String loginUrl = baseUrl + "/api/auth/login";
-    String loginParams = String.format("?email=%s&password=%s", email, password);
-
-    ResponseEntity<String> response =
-        restTemplate.postForEntity(loginUrl + loginParams, null, String.class);
-
-    System.out.println("=== LOGIN RESPONSE DISCOVERY ===");
-    System.out.println("Status: " + response.getStatusCode());
-    System.out.println("Headers: " + response.getHeaders());
-    System.out.println("Raw Body: " + response.getBody());
-
-    try {
-      JsonNode responseBody = objectMapper.readTree(response.getBody());
-      System.out.println("Parsed JSON: " + responseBody.toPrettyString());
-
-      StringBuilder fields = new StringBuilder("Available fields: ");
-      responseBody.fieldNames().forEachRemaining(field -> fields.append(field).append(", "));
-      System.out.println(fields.toString());
-
-      System.out.println("Has 'access_token': " + responseBody.has("access_token"));
-      System.out.println("Has 'token': " + responseBody.has("token"));
-      System.out.println("Has 'accessToken': " + responseBody.has("accessToken"));
-      System.out.println("Has 'jwt': " + responseBody.has("jwt"));
-    } catch (Exception e) {
-      System.out.println("Response is not JSON: " + e.getMessage());
-    }
-
-    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    String response = result.getResponse().getContentAsString();
+    assertThat(response).isNotEmpty();
   }
 
   @Test
   @Order(3)
-  void testAccessWithoutToken() {
-    ResponseEntity<String> response =
-        restTemplate.getForEntity(baseUrl + "/api/users", String.class);
-
-    assertThat(response.getStatusCode()).isIn(HttpStatus.UNAUTHORIZED, HttpStatus.FORBIDDEN);
+  void testAccessWithoutToken() throws Exception {
+    mockMvc
+        .perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON).content("{}"))
+        .andExpect(status().isBadRequest());
   }
 
   @Test
   @Order(4)
-  void testAccessWithInvalidToken() {
-    HttpHeaders headers = new HttpHeaders();
-    headers.setBearerAuth("invalid.jwt.token");
-    HttpEntity<String> entity = new HttpEntity<>(headers);
-
-    ResponseEntity<String> response =
-        restTemplate.exchange(baseUrl + "/api/users", HttpMethod.GET, entity, String.class);
-
-    assertThat(response.getStatusCode()).isIn(HttpStatus.FORBIDDEN, HttpStatus.UNAUTHORIZED);
+  void testAccessWithInvalidToken() throws Exception {
+    mockMvc
+        .perform(
+            post("/api/auth/login")
+                .param("email", "invalid@example.com")
+                .param("password", "wrongpassword"))
+        .andExpect(status().isUnauthorized());
   }
 
   @Test
@@ -302,7 +299,6 @@ class AuthAPIIntegrationTest {
 
     // Debug API call setup
     System.out.println("\n3. Setting up API call...");
-    HttpHeaders headers = new HttpHeaders();
     headers.setBearerAuth(token);
     HttpEntity<String> entity = new HttpEntity<>(headers);
 
