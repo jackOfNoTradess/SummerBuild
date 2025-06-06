@@ -7,7 +7,6 @@ import com.example.SummerBuild.config.TestSecurityConfig;
 import com.example.SummerBuild.dto.UserDto;
 import com.example.SummerBuild.model.Gender;
 import com.example.SummerBuild.model.UserRole;
-import com.example.SummerBuild.service.UserService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Arrays;
@@ -42,7 +41,9 @@ class UserAPIIntegrationTest {
 
   @Autowired private ObjectMapper objectMapper;
 
-  @Autowired private UserService userService;
+  // @Autowired private UserService userService;
+
+  @Autowired private TestAuthConfig testAuthConfig;
 
   @LocalServerPort private int port;
 
@@ -52,6 +53,19 @@ class UserAPIIntegrationTest {
 
   @BeforeEach
   void setUp() {
+    // Setup mocks before each test
+    testAuthConfig.setupMocks();
+
+    // Debug what service we're actually using
+    System.out.println("=== BEAN DEBUG ===");
+    if (testAuthConfig.userService() != null) {
+      System.out.println("UserService class: " + testAuthConfig.userService().getClass().getName());
+    } else {
+      System.out.println("UserService is NULL — mock not initialized");
+    }
+
+    System.out.println("==================");
+
     baseUrl = "http://localhost:" + port + "/api/users";
     testUserId = signupAndGetUserId();
     String jwtToken = loginAndGetToken();
@@ -64,7 +78,7 @@ class UserAPIIntegrationTest {
   @AfterEach
   void cleanupTestData() {
     try {
-      jdbcTemplate.update("DELETE FROM users WHERE role = 'USER' AND id != ?", testUserId);
+      jdbcTemplate.update("DELETE FROM users WHERE email LIKE '%@example.com'");
     } catch (Exception e) {
       System.out.println("Test cleanup warning: " + e.getMessage());
     }
@@ -92,12 +106,49 @@ class UserAPIIntegrationTest {
     ResponseEntity<String> loginResponse =
         restTemplate.postForEntity(loginUrl + loginParams, null, String.class);
 
+    // Debugging
+    System.out.println("=== LOGIN DEBUG ===");
+    System.out.println("Login URL: " + loginUrl + loginParams);
+    System.out.println("Login Response Status: " + loginResponse.getStatusCode());
+    System.out.println("Login Response Body: " + loginResponse.getBody());
+    System.out.println("Login Response Headers: " + loginResponse.getHeaders());
+    System.out.println("==================");
+
+    assertThat(loginResponse.getStatusCode()).isEqualTo(HttpStatus.OK); // ✅ Early catch
+
     try {
+      if (loginResponse.getBody() == null) {
+        throw new RuntimeException("Login response body is null - mock not working");
+      }
       JsonNode jsonResponse = objectMapper.readTree(loginResponse.getBody());
       return jsonResponse.get("access_token").asText();
     } catch (Exception e) {
       throw new RuntimeException("Failed to extract JWT token from login response", e);
     }
+  }
+
+  @Test
+  @Order(0)
+  void debugTestSetup() {
+    System.out.println("=== SETUP DEBUG ===");
+    System.out.println("Base URL: " + baseUrl);
+    System.out.println("Test User ID: " + testUserId);
+    System.out.println("Auth Headers: " + authHeaders);
+
+    // Check if mocks are working
+    System.out.println("UserService class: " + testAuthConfig.userService().getClass());
+    System.out.println(
+        "SupabaseAuthService class: " + testAuthConfig.supabaseAuthService().getClass());
+
+    // Check database connection
+    try {
+      Integer userCount = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM users", Integer.class);
+      System.out.println("Current users in DB: " + userCount);
+    } catch (Exception e) {
+      System.out.println("Database error: " + e.getMessage());
+    }
+
+    System.out.println("==================");
   }
 
   /** Tests creating a user and verifies it's stored in the database */

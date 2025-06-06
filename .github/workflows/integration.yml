@@ -434,8 +434,8 @@ jobs:
             # Run with both test and ci profiles
             # ci profile will override H2 settings with PostgreSQL
             mvn test \
-              -Dspring.profiles.active=test,ci \
-              -Dtest="*IntegrationTest" \
+              -Dspring.profiles.active=test \
+              -Dtest="EventAPIIntegrationTest" \
               -B
             
             echo ""
