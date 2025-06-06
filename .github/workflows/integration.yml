@@ -36,7 +36,7 @@ permissions:
 
 env:
   JAVA_VERSION: '21'
-  DB_NAME: ${{ secrets.POSTGRES_DB }}
+  DB_NAME: "testdb_${{ github.run_id }}"  # Unique DB per run to counter @Commit
   DB_USER: ${{ secrets.POSTGRES_USER }}
   DB_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
 
@@ -112,15 +112,29 @@ jobs:
           DB_PASSWORD: ${{ env.DB_PASSWORD }}
 
       - name: "Stage 1 Information"
-        if: github.event_name == 'repository_dispatch'
+        if: |
+          github.event_name == 'repository_dispatch' || 
+          github.event_name == 'workflow_call' ||
+          (github.event_name == 'workflow_dispatch' && github.event.inputs.sha)
         run: |
           echo "==============================="
           echo " STAGE 2: INTEGRATION TESTING  "
           echo "==============================="
-          echo "Triggered by Stage 1 completion"
-          echo "Source SHA: ${{ github.event.client_payload.sha }}"
-          echo "Source Ref: ${{ github.event.client_payload.ref }}"
-          echo "Stage 1 Run ID: ${{ github.event.client_payload.stage1_run_id }}"
+          if [ "${{ github.event_name }}" == "repository_dispatch" ]; then
+            echo "Triggered by Stage 1 completion (repository_dispatch)"
+            echo "Source SHA: ${{ github.event.client_payload.sha }}"
+            echo "Source Ref: ${{ github.event.client_payload.ref }}"
+            echo "Stage 1 Run ID: ${{ github.event.client_payload.stage1_run_id }}"
+          elif [ "${{ github.event_name }}" == "workflow_call" ]; then
+            echo "Triggered by Stage 1 completion (workflow_call)"
+            echo "Source SHA: ${{ inputs.sha }}"
+            echo "Source Ref: ${{ inputs.ref }}"
+            echo "Stage 1 Run ID: ${{ inputs.stage1_run_id }}"
+          else
+            echo "Triggered manually or by push"
+            echo "Source SHA: ${{ github.sha }}"
+            echo "Source Ref: ${{ github.ref }}"
+          fi
           echo "============================="
 
       - name: "Set up JDK 21"
@@ -421,7 +435,7 @@ jobs:
             # ci profile will override H2 settings with PostgreSQL
             mvn test \
               -Dspring.profiles.active=test,ci \
-              -Dtest="EventAPIIntegrationTest" \
+              -Dtest="**/*IntegrationTest" \
               -B
             
             echo ""
@@ -432,6 +446,19 @@ jobs:
             DB_USER: ${{ env.DB_USER }}
             DB_PASSWORD: ${{ env.DB_PASSWORD }}
 
+        - name: "Debug Test Reports Location"
+          if: always()
+          run: |
+            echo "Looking for test reports..."
+            find . -name "*.xml" -path "*/surefire-reports/*" 2>/dev/null || echo "No surefire XML reports found"
+            find . -name "surefire-reports" -type d 2>/dev/null || echo "No surefire-reports directory found"
+            echo "Contents of target directory:"
+            ls -la target/ 2>/dev/null || echo "No target directory found"
+            if [ -d "target/surefire-reports" ]; then
+              echo "Contents of target/surefire-reports:"
+              ls -la target/surefire-reports/
+            fi
+
         - name: "Integration Test Results Summary"
           if: always()  # Run even if tests fail
           run: |
@@ -439,16 +466,29 @@ jobs:
             echo "       INTEGRATION TEST RESULTS SUMMARY       "
             echo "=============================================="
             echo ""
-            if [ -f "target/surefire-reports/TEST-*.xml" ]; then
-              echo "Test reports generated:"
-              ls -la target/surefire-reports/TEST-*IntegrationTest.xml 2>/dev/null || echo "No integration test reports found"
+            
+            # Check if surefire-reports directory exists
+            if [ -d "target/surefire-reports" ]; then
+              echo "Test reports found in target/surefire-reports/:"
+              ls -la target/surefire-reports/
               
-              # Show test summary
+              # Show test summary for all XML files
               echo ""
-              echo "Test Results:"
-              grep -h "tests=" target/surefire-reports/TEST-*IntegrationTest.xml 2>/dev/null | head -5 || echo "Could not extract test summary"
+              echo "Test Results Summary:"
+              for xml_file in target/surefire-reports/TEST-*.xml; do
+                if [ -f "$xml_file" ]; then
+                  echo "----------------------------------------------"
+                  echo "Test Suite: $(basename "$xml_file")"
+                  echo "----------------------------------------------"
+                  grep -h "tests=" "$xml_file" | head -1
+                  grep -h "failures=" "$xml_file" | head -1
+                  grep -h "errors=" "$xml_file" | head -1
+                  grep -h "skipped=" "$xml_file" | head -1
+                  echo ""
+                fi
+              done
             else
-              echo "No test reports directory found"
+              echo "No test reports directory found at target/surefire-reports/"
             fi
             echo ""
             echo "=============================================="

@@ -140,8 +140,6 @@ jobs:
           report_paths: 'Backend/**/target/surefire-reports/TEST-*.xml'
           check_name: "Stage 1 - Unit Test Results"
           summary: "Unit test results from Stage 1 CI pipeline"
-          include-passed: true
-          detailed-summary: true
           fail_on_failure: true
       
       # Summary Report
