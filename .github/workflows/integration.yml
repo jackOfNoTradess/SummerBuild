@@ -40,6 +40,11 @@ env:
   DB_USER: ${{ secrets.POSTGRES_USER }}
   DB_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
   CI: true  # Set CI environment variable globally
+  # Supabase mock configuration
+  SUPABASE_URL: http://localhost:54321
+  SUPABASE_ANON_KEY: dummyAnonKey
+  SUPABASE_JWT_SECRET: c3VwZXItc2VjcmV0LWp3dC10b2tlbi13aXRoLWF0LWxlYXN0LTMyLWNoYXJhY3RlcnMtbG9uZw==
+  SUPABASE_SERVICE_KEY: dummyServiceKey
 
 jobs:
   integration-setup: 
@@ -54,6 +59,11 @@ jobs:
       SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/testdb_${{ github.run_id }}
       SPRING_DATASOURCE_USERNAME: ${{ secrets.POSTGRES_USER }}
       SPRING_DATASOURCE_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+      # Supabase mock configuration
+      SUPABASE_URL: http://localhost:54321
+      SUPABASE_ANON_KEY: dummyAnonKey
+      SUPABASE_JWT_SECRET: c3VwZXItc2VjcmV0LWp3dC10b2tlbi13aXRoLWF0LWxlYXN0LTMyLWNoYXJhY3RlcnMtbG9uZw==
+      SUPABASE_SERVICE_KEY: dummyServiceKey
 
     # PostgreSQL service container for integration testing
     services:
@@ -114,9 +124,7 @@ jobs:
           echo "DB_USER: '${{ env.DB_USER }}'"
           echo "DB_PASSWORD length: ${#DB_PASSWORD}"
           echo "CI environment: $CI"
-          echo "SPRING_DATASOURCE_URL: $SPRING_DATASOURCE_URL"
-          echo "SPRING_DATASOURCE_USERNAME: $SPRING_DATASOURCE_USERNAME"
-          echo "SPRING_DATASOURCE_PASSWORD length: ${#SPRING_DATASOURCE_PASSWORD}"
+          echo "Supabase URL: $SUPABASE_URL"
           echo "All environment variables that start with POSTGRES:"
           env | grep POSTGRES || echo "No POSTGRES variables found"
         env:
@@ -124,9 +132,7 @@ jobs:
           DB_USER: ${{ env.DB_USER }}
           DB_PASSWORD: ${{ env.DB_PASSWORD }}
           CI: ${{ env.CI }}
-          SPRING_DATASOURCE_URL: ${{ env.SPRING_DATASOURCE_URL }}
-          SPRING_DATASOURCE_USERNAME: ${{ env.SPRING_DATASOURCE_USERNAME }}
-          SPRING_DATASOURCE_PASSWORD: ${{ env.SPRING_DATASOURCE_PASSWORD }}
+          SUPABASE_URL: ${{ env.SUPABASE_URL }}
 
       - name: "Stage 1 Information"
         if: |
@@ -338,6 +344,13 @@ jobs:
           
           # Bean override configuration
           spring.main.allow-bean-definition-overriding=true
+
+          # Supabase Configuration
+          supabase.url=$SUPABASE_URL
+          supabase.anonKey=$SUPABASE_ANON_KEY
+          supabase.jwtSecret=$SUPABASE_JWT_SECRET
+          supabase.serviceKey=$SUPABASE_SERVICE_KEY
+          supabase.auth.enabled=true
           EOF
 
           # Create Flyway test configuration
@@ -433,6 +446,13 @@ jobs:
             
             # Bean override configuration
             spring.main.allow-bean-definition-overriding=true
+
+            # Supabase Configuration
+            supabase.url=$SUPABASE_URL
+            supabase.anonKey=$SUPABASE_ANON_KEY
+            supabase.jwtSecret=$SUPABASE_JWT_SECRET
+            supabase.serviceKey=$SUPABASE_SERVICE_KEY
+            supabase.auth.enabled=true
             EOF
 
             # Create Flyway test configuration
@@ -495,6 +515,7 @@ jobs:
             echo "Spring Profiles: test,ci,flyway-test"
             echo "CI Environment: $CI"
             echo "Database URL: jdbc:postgresql://localhost:5432/$DB_NAME"
+            echo "Supabase URL: $SUPABASE_URL"
             echo ""
             
             mvn test \
@@ -502,6 +523,10 @@ jobs:
               -Dspring.datasource.url=jdbc:postgresql://localhost:5432/$DB_NAME \
               -Dspring.datasource.username=$DB_USER \
               -Dspring.datasource.password=$DB_PASSWORD \
+              -Dsupabase.url=$SUPABASE_URL \
+              -Dsupabase.anonKey=$SUPABASE_ANON_KEY \
+              -Dsupabase.jwtSecret=$SUPABASE_JWT_SECRET \
+              -Dsupabase.serviceKey=$SUPABASE_SERVICE_KEY \
               -Dtest="**/*IntegrationTest" \
               -B
             
@@ -513,6 +538,10 @@ jobs:
             DB_USER: ${{ env.DB_USER }}
             DB_PASSWORD: ${{ env.DB_PASSWORD }}
             CI: ${{ env.CI }}
+            SUPABASE_URL: ${{ env.SUPABASE_URL }}
+            SUPABASE_ANON_KEY: ${{ env.SUPABASE_ANON_KEY }}
+            SUPABASE_JWT_SECRET: ${{ env.SUPABASE_JWT_SECRET }}
+            SUPABASE_SERVICE_KEY: ${{ env.SUPABASE_SERVICE_KEY }}
 
         - name: "Debug Test Reports Location"
           if: always()
