@@ -2,17 +2,29 @@ package com.example.SummerBuild.controller;
 
 import com.example.SummerBuild.dto.EventsDto;
 import com.example.SummerBuild.service.EventsService;
+import com.example.SummerBuild.util.FileLoaderService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Encoding;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
+
+import java.io.File;
 import java.util.List;
 import java.util.UUID;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/events")
@@ -21,6 +33,7 @@ import org.springframework.web.bind.annotation.*;
 public class EventsController {
 
   private final EventsService eventsService;
+  private final FileLoaderService fileLoaderService;
   private static final Logger logger = LoggerFactory.getLogger(EventsController.class);
 
   @GetMapping
@@ -37,9 +50,17 @@ public class EventsController {
     return ResponseEntity.ok(event);
   }
 
-  @PostMapping
+  @PostMapping(consumes = { MediaType.MULTIPART_FORM_DATA_VALUE })
+  @RequestBody(content = @Content(mediaType = MediaType.MULTIPART_FORM_DATA_VALUE, encoding = {
+      @Encoding(name = "event", contentType = MediaType.APPLICATION_JSON_VALUE),
+      @Encoding(name = "files", contentType = MediaType.APPLICATION_OCTET_STREAM_VALUE)
+  }))
   public ResponseEntity<EventsDto> createEvent(
-      @Valid @RequestBody EventsDto eventsDto, Authentication authentication) {
+      @RequestPart(value = "files") List<MultipartFile> files,
+      @Valid @RequestPart(value = "event") EventsDto eventsDto,
+      Authentication authentication,
+      HttpServletRequest request) {
+
     logger.info("=== CONTROLLER REACHED ===");
     logger.info("POST /api/events - Creating new event with title: {}", eventsDto.getTitle());
     logger.info("Authentication object: {}", authentication);
@@ -50,6 +71,29 @@ public class EventsController {
     UUID hostUuid = UUID.fromString(authentication.getName());
 
     EventsDto createdEvent = eventsService.create(eventsDto, hostUuid);
+
+    UUID eventUuid = createdEvent.getId();
+
+    String jwtToken = null;
+    String authHeader = request.getHeader("Authorization");
+
+    if (authHeader != null && authHeader.startsWith("Bearer ")) {
+      jwtToken = authHeader.substring(7);
+      logger.info("Extracted JWT token: {}", jwtToken);
+    } else {
+      logger.warn("Authorization header missing or malformed.");
+    }
+
+    logger.info("inserting images for event into bucket: {}", eventUuid);
+    String serverReply = fileLoaderService.uploadFile(files, eventUuid, jwtToken);
+    if (serverReply == null || !serverReply.equals("Files uploaded successfully")) {
+      logger.error("File upload failed for event: {}. Server response: {}", eventUuid, serverReply);
+      logger.error("File upload failed: {}", serverReply != null ? serverReply : "Unknown error");
+
+      // look at logs for more details cause i cant return a string here
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+    }
+
     return ResponseEntity.status(HttpStatus.CREATED).body(createdEvent);
   }
 
