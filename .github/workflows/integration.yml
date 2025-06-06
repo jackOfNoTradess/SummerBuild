@@ -40,9 +40,6 @@ env:
   DB_USER: ${{ secrets.POSTGRES_USER }}
   DB_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
   CI: true  # Set CI environment variable globally
-  SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/${{ env.DB_NAME }}
-  SPRING_DATASOURCE_USERNAME: ${{ env.DB_USER }}
-  SPRING_DATASOURCE_PASSWORD: ${{ env.DB_PASSWORD }}
 
 jobs:
   integration-setup: 
@@ -52,6 +49,11 @@ jobs:
     defaults:
       run:
         working-directory: Backend
+
+    env:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/testdb_${{ github.run_id }}
+      SPRING_DATASOURCE_USERNAME: ${{ secrets.POSTGRES_USER }}
+      SPRING_DATASOURCE_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
 
     # PostgreSQL service container for integration testing
     services:
@@ -492,11 +494,14 @@ jobs:
             echo "Database: PostgreSQL (localhost:5432) - Real integration testing"
             echo "Spring Profiles: test,ci,flyway-test"
             echo "CI Environment: $CI"
-            echo "Database URL: $SPRING_DATASOURCE_URL"
+            echo "Database URL: jdbc:postgresql://localhost:5432/$DB_NAME"
             echo ""
             
             mvn test \
               -Dspring.profiles.active=test,ci,flyway-test \
+              -Dspring.datasource.url=jdbc:postgresql://localhost:5432/$DB_NAME \
+              -Dspring.datasource.username=$DB_USER \
+              -Dspring.datasource.password=$DB_PASSWORD \
               -Dtest="**/*IntegrationTest" \
               -B
             
@@ -508,9 +513,6 @@ jobs:
             DB_USER: ${{ env.DB_USER }}
             DB_PASSWORD: ${{ env.DB_PASSWORD }}
             CI: ${{ env.CI }}
-            SPRING_DATASOURCE_URL: ${{ env.SPRING_DATASOURCE_URL }}
-            SPRING_DATASOURCE_USERNAME: ${{ env.SPRING_DATASOURCE_USERNAME }}
-            SPRING_DATASOURCE_PASSWORD: ${{ env.SPRING_DATASOURCE_PASSWORD }}
 
         - name: "Debug Test Reports Location"
           if: always()
