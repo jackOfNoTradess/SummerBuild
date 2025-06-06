@@ -305,7 +305,7 @@ class AuthAPIIntegrationTest {
     System.out.println("Authorization header: " + headers.getFirst("Authorization"));
     System.out.println("Target URL: " + baseUrl + "/api/users");
 
-    // Step 4: Make the API call with detailed error catching
+    // API call with detailed error catching
     System.out.println("\n4. Making API call...");
     ResponseEntity<String> response;
     try {
@@ -321,7 +321,6 @@ class AuthAPIIntegrationTest {
       System.out.println("✗ API call threw exception: " + e.getClass().getSimpleName());
       System.out.println("Exception message: " + e.getMessage());
 
-      // If it's a RestClientException, try to get more details
       if (e instanceof org.springframework.web.client.HttpServerErrorException) {
         org.springframework.web.client.HttpServerErrorException serverError =
             (org.springframework.web.client.HttpServerErrorException) e;
@@ -331,14 +330,14 @@ class AuthAPIIntegrationTest {
       throw e;
     }
 
-    // Analyze the response
+    // Check response
     System.out.println("\n5. Response Analysis...");
     if (response.getStatusCode() == HttpStatus.INTERNAL_SERVER_ERROR) {
       System.out.println("🚨 GOT 500 INTERNAL SERVER ERROR");
       System.out.println("This indicates an application problem, not an auth problem");
       System.out.println("Response body for debugging: " + response.getBody());
 
-      // Check if there are any error patterns in the response
+      // Check for error in the response
       String responseBody = response.getBody();
       if (responseBody != null) {
         if (responseBody.contains("database") || responseBody.contains("connection")) {
@@ -352,13 +351,13 @@ class AuthAPIIntegrationTest {
         }
       }
 
-      // For debugging purposes, let's also verify our token is valid format
+      // Verify our token is valid format
       System.out.println("Token validation:");
       System.out.println("- Is not null: " + (token != null));
       System.out.println("- Is not empty: " + (token != null && !token.isEmpty()));
       System.out.println("- Starts with 'eyJ': " + (token != null && token.startsWith("eyJ")));
 
-      // Fail the test with a clear message about what needs investigation
+      // Fail the test
       fail(
           "Got 500 Internal Server Error instead of 200/403. This indicates an application infrastructure problem in CI that needs investigation. Response: "
               + responseBody);

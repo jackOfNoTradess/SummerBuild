@@ -90,6 +90,7 @@ build/
 !**/application.properties.template
 **/env.properties
 **/application-test.properties
+**/application-flyway-test.properties
 **/application-integration.properties
 !**/env.properties.template
 
