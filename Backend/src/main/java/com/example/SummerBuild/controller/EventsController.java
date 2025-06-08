@@ -133,14 +133,12 @@ public class EventsController {
     return ResponseEntity.ok(events);
   }
 
-  // need to return a string to view the file in the frontend
   @GetMapping("/{eventId}/files/{fileName}")
   public ResponseEntity<String> getEventFile(
       @PathVariable UUID eventId,
       @PathVariable String fileName) {
     logger.info("GET /api/events/{}/files/{} - Fetching file", eventId, fileName);
 
-    // NOT DONE!!!!!!!!!!!!!!!!!!!!!!!!!!!
     String filePath = fileLoaderService.getFilePath(eventId.toString(), fileName);
     if (filePath != null) {
       return ResponseEntity.ok(filePath);

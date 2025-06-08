@@ -1,6 +1,5 @@
 package com.example.SummerBuild.util;
 
-import java.io.File;
 import java.util.List;
 import java.util.UUID;
 
@@ -11,11 +10,9 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatusCode;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 
@@ -95,9 +92,11 @@ public class FileLoaderService {
   public String getFilePath(String eventId, String fileName) {
     // Only returns a path if the file exists
 
-    // TODO: return a string to view the file in the frontend
     String filePath = buildFileUrl(eventId, fileName);
-    return fileExists(filePath) ? filePath : null;
+    if (!fileExists(filePath)) {
+      return null;
+    }
+    return buildPublicFileUrl(eventId, fileName);
   }
 
   public boolean deleteFile(String eventId, String fileName) {
@@ -170,5 +169,13 @@ public class FileLoaderService {
     headers.set("Authorization", "Bearer " + supabaseApiKey);
     return headers;
   }
-}
 
+  private String buildPublicFileUrl(String eventUuid, String fileName) {
+    String path = bucketName + "/";
+    if (eventUuid != null) {
+      path += eventUuid + "/";
+    }
+    path += fileName;
+    return supabaseUrl + "/storage/v1/object/public/" + path;
+  }
+}
