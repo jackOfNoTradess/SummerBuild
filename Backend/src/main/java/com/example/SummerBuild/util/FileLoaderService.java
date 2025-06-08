@@ -2,19 +2,18 @@ package com.example.SummerBuild.util;
 
 import java.util.List;
 import java.util.UUID;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.web.client.RestTemplate;
-import org.springframework.web.multipart.MultipartFile;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.http.HttpMethod;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 public class FileLoaderService {
@@ -64,21 +63,22 @@ public class FileLoaderService {
 
         HttpEntity<byte[]> requestEntity = new HttpEntity<>(fileBytes, headers);
 
-        ResponseEntity<String> response = restTemplate.exchange(
-            fullFilePath,
-            HttpMethod.POST,
-            requestEntity,
-            String.class);
+        ResponseEntity<String> response =
+            restTemplate.exchange(fullFilePath, HttpMethod.POST, requestEntity, String.class);
 
         if (response.getStatusCode().is2xxSuccessful()) {
-          logger.info("File uploaded successfully with status code: {}", response.getStatusCode().value());
+          logger.info(
+              "File uploaded successfully with status code: {}", response.getStatusCode().value());
         } else {
           logger.warn("Unexpected status code: {}", response.getStatusCode().value());
           return "Upload failed with unexpected status: " + response.getStatusCode().value();
         }
 
       } catch (HttpClientErrorException | HttpServerErrorException e) {
-        logger.error("Error during file upload: {} - {}", e.getStatusCode().value(), e.getResponseBodyAsString());
+        logger.error(
+            "Error during file upload: {} - {}",
+            e.getStatusCode().value(),
+            e.getResponseBodyAsString());
         return "Upload failed: " + e.getStatusCode().value();
       } catch (Exception e) {
         logger.error("Failed to upload file due to exception: {}", e.getMessage());
@@ -111,17 +111,17 @@ public class FileLoaderService {
       HttpHeaders headers = buildHeaders();
       HttpEntity<Void> requestEntity = new HttpEntity<>(headers);
 
-      ResponseEntity<String> response = restTemplate.exchange(
-          filePath,
-          HttpMethod.DELETE,
-          requestEntity,
-          String.class);
+      ResponseEntity<String> response =
+          restTemplate.exchange(filePath, HttpMethod.DELETE, requestEntity, String.class);
 
       if (response.getStatusCode().is2xxSuccessful()) {
         logger.info("File deleted successfully: {}", fileName);
         return true;
       } else {
-        logger.warn("Failed to delete file: {} - Status code: {}", fileName, response.getStatusCode().value());
+        logger.warn(
+            "Failed to delete file: {} - Status code: {}",
+            fileName,
+            response.getStatusCode().value());
       }
     } catch (Exception e) {
       logger.error("Exception during file deletion: {}", e.getMessage());
@@ -135,11 +135,8 @@ public class FileLoaderService {
       HttpHeaders headers = buildHeaders();
       HttpEntity<Void> requestEntity = new HttpEntity<>(headers);
 
-      ResponseEntity<byte[]> response = restTemplate.exchange(
-          filePath,
-          HttpMethod.GET,
-          requestEntity,
-          byte[].class);
+      ResponseEntity<byte[]> response =
+          restTemplate.exchange(filePath, HttpMethod.GET, requestEntity, byte[].class);
 
       return response.getStatusCode().is2xxSuccessful();
     } catch (HttpClientErrorException e) {

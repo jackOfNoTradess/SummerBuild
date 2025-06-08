@@ -8,7 +8,6 @@ import io.swagger.v3.oas.annotations.media.Encoding;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
-
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -45,11 +44,15 @@ public class EventsController {
     return ResponseEntity.ok(event);
   }
 
-  @PostMapping(consumes = { MediaType.MULTIPART_FORM_DATA_VALUE })
-  @RequestBody(content = @Content(mediaType = MediaType.MULTIPART_FORM_DATA_VALUE, encoding = {
-      @Encoding(name = "event", contentType = MediaType.APPLICATION_JSON_VALUE),
-      @Encoding(name = "files", contentType = MediaType.APPLICATION_OCTET_STREAM_VALUE)
-  }))
+  @PostMapping(consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
+  @RequestBody(
+      content =
+          @Content(
+              mediaType = MediaType.MULTIPART_FORM_DATA_VALUE,
+              encoding = {
+                @Encoding(name = "event", contentType = MediaType.APPLICATION_JSON_VALUE),
+                @Encoding(name = "files", contentType = MediaType.APPLICATION_OCTET_STREAM_VALUE)
+              }))
   public ResponseEntity<EventsDto> createEvent(
       @RequestPart(value = "files") List<MultipartFile> files,
       @Valid @RequestPart(value = "event") EventsDto eventsDto,
@@ -81,14 +84,21 @@ public class EventsController {
     return ResponseEntity.status(HttpStatus.CREATED).body(createdEvent);
   }
 
-  @PutMapping(value = "/{id}", consumes = { MediaType.MULTIPART_FORM_DATA_VALUE })
-  @RequestBody(content = @Content(mediaType = MediaType.MULTIPART_FORM_DATA_VALUE, encoding = {
-      @Encoding(name = "event", contentType = MediaType.APPLICATION_JSON_VALUE),
-      @Encoding(name = "files", contentType = MediaType.APPLICATION_OCTET_STREAM_VALUE)
-  }))
+  @PutMapping(
+      value = "/{id}",
+      consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
+  @RequestBody(
+      content =
+          @Content(
+              mediaType = MediaType.MULTIPART_FORM_DATA_VALUE,
+              encoding = {
+                @Encoding(name = "event", contentType = MediaType.APPLICATION_JSON_VALUE),
+                @Encoding(name = "files", contentType = MediaType.APPLICATION_OCTET_STREAM_VALUE)
+              }))
   public ResponseEntity<EventsDto> updateEvent(
       @RequestPart(value = "files", required = false) List<MultipartFile> files,
-      @PathVariable UUID id, @Valid @RequestPart(value = "event") EventsDto eventsDto,
+      @PathVariable UUID id,
+      @Valid @RequestPart(value = "event") EventsDto eventsDto,
       Authentication authentication) {
     logger.info("PUT /api/events/{} - Updating event", id);
 
@@ -135,8 +145,7 @@ public class EventsController {
 
   @GetMapping("/{eventId}/files/{fileName}")
   public ResponseEntity<String> getEventFile(
-      @PathVariable UUID eventId,
-      @PathVariable String fileName) {
+      @PathVariable UUID eventId, @PathVariable String fileName) {
     logger.info("GET /api/events/{}/files/{} - Fetching file", eventId, fileName);
 
     String filePath = fileLoaderService.getFilePath(eventId.toString(), fileName);
@@ -151,9 +160,7 @@ public class EventsController {
   // Done le
   @DeleteMapping("/{eventId}/files/{fileName}")
   public ResponseEntity<Void> deleteEventFile(
-      @PathVariable UUID eventId,
-      @PathVariable String fileName,
-      Authentication authentication) {
+      @PathVariable UUID eventId, @PathVariable String fileName, Authentication authentication) {
     logger.info("DELETE /api/events/{}/files/{} - Deleting file", eventId, fileName);
 
     // Verify the authenticated user is the event host
