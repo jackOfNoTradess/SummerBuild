@@ -13,9 +13,12 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.ContextConfiguration;
+import com.example.SummerBuild.SummerBuildApplication;
 
 @DataJpaTest
 @ActiveProfiles("test")
+@ContextConfiguration(classes = SummerBuildApplication.class)
 public class UserRepositoryTest {
 
   @Autowired private UserRepository userRepository;

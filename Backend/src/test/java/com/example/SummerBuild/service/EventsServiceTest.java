@@ -48,12 +48,12 @@ class EventsServiceTest {
     return Events.builder()
         .id(testEventId)
         .title("Test Event")
-        .host_uuid(testHostId)
+        .hostId(testHostId)
         .capacity(100)
         .startTime(LocalDateTime.now().plusDays(1))
         .endTime(LocalDateTime.now().plusDays(1).plusHours(2))
         .description("Test event description")
-        .tags(Arrays.asList("test", "event"))
+        .tags(new String[]{"test", "event"})
         .picPath("/images/test.jpg")
         .build();
   }
@@ -226,7 +226,7 @@ class EventsServiceTest {
   void findByHostUuid_returnsFilteredEvents() {
     Events anotherEvent = createTestEvent();
     anotherEvent.setId(UUID.randomUUID());
-    anotherEvent.setHost_uuid(UUID.randomUUID()); // Different host
+    anotherEvent.setHostId(UUID.randomUUID()); // Different host
 
     when(eventsRepository.findAll()).thenReturn(Arrays.asList(testEvent, anotherEvent));
     when(eventsMapper.toDto(testEvent)).thenReturn(testEventDto);
@@ -244,7 +244,7 @@ class EventsServiceTest {
   @DisplayName("findByHostUuid - no events for host - returns empty list")
   void findByHostUuid_noEventsForHost_returnsEmptyList() {
     Events anotherEvent = createTestEvent();
-    anotherEvent.setHost_uuid(UUID.randomUUID()); // Different host
+    anotherEvent.setHostId(UUID.randomUUID()); // Different host
 
     when(eventsRepository.findAll()).thenReturn(Arrays.asList(anotherEvent));
 
