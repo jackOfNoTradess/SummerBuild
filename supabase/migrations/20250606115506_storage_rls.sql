@@ -1,6 +1,6 @@
 -- Step 1: Create the bucket
 insert into storage.buckets (id, name, public) 
-values ('event-pictures', 'event-pictures', false)
+values ('event-pictures', 'event-pictures', true)
 on conflict do nothing;
 
 -- Step 2: Clear existing policies (optional)
