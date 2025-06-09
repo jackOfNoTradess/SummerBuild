@@ -1,7 +1,8 @@
 package com.example.SummerBuild.model;
 
 import jakarta.persistence.*;
-import org.hibernate.annotations.Type;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import java.time.LocalDateTime;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
@@ -45,7 +46,7 @@ public class Events extends BaseEntity {
   @Column(name = "description", length = 255)
   private String description;
 
-  @Type(io.hypersistence.utils.hibernate.type.array.StringArrayType.class)
+  @JdbcTypeCode(SqlTypes.ARRAY)
   @Column(name = "tag", columnDefinition = "text[]")
   private String[] tags;
 
