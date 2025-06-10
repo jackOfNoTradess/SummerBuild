@@ -43,5 +43,9 @@ RUN curl -fsSL https://archive.apache.org/dist/maven/maven-3/3.9.6/binaries/apac
 ENV MAVEN_HOME=/opt/maven
 ENV PATH="${MAVEN_HOME}/bin:${PATH}"
 
+# Install Node.js and npm
+RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
+    && apt-get install -y nodejs
+
 # Set working directory
 WORKDIR /workspaces
