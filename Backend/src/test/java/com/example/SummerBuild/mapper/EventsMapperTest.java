@@ -33,12 +33,12 @@ class EventsMapperTest {
         Events.builder()
             .id(eventId)
             .title("Test Event")
-            .host_uuid(hostId)
+            .hostId(hostId)
             .capacity(100)
             .startTime(startTime)
             .endTime(endTime)
             .description("Test description")
-            .tags(Arrays.asList("test", "event"))
+            .tags(new String[]{"test", "event"})
             .build();
     event.setCreatedAt(now);
     event.setUpdatedAt(now);
@@ -48,12 +48,12 @@ class EventsMapperTest {
     assertNotNull(dto);
     assertEquals(event.getId(), dto.getId());
     assertEquals(event.getTitle(), dto.getTitle());
-    assertEquals(event.getHost_uuid(), dto.getHostUuid());
+    assertEquals(event.getHostId(), dto.getHostUuid());
     assertEquals(event.getCapacity(), dto.getCapacity());
     assertEquals(event.getStartTime(), dto.getStartTime());
     assertEquals(event.getEndTime(), dto.getEndTime());
     assertEquals(event.getDescription(), dto.getDescription());
-    assertEquals(event.getTags(), dto.getTags());
+    assertArrayEquals(event.getTags(), dto.getTags().toArray(new String[0]));
     assertEquals(event.getCreatedAt(), dto.getCreatedAt());
     assertEquals(event.getUpdatedAt(), dto.getUpdatedAt());
   }
@@ -88,12 +88,12 @@ class EventsMapperTest {
     assertNotNull(entity);
     assertEquals(dto.getId(), entity.getId());
     assertEquals(dto.getTitle(), entity.getTitle());
-    assertEquals(dto.getHostUuid(), entity.getHost_uuid());
+    assertEquals(dto.getHostUuid(), entity.getHostId());
     assertEquals(dto.getCapacity(), entity.getCapacity());
     assertEquals(dto.getStartTime(), entity.getStartTime());
     assertEquals(dto.getEndTime(), entity.getEndTime());
     assertEquals(dto.getDescription(), entity.getDescription());
-    assertEquals(dto.getTags(), entity.getTags());
+    assertArrayEquals(dto.getTags().toArray(new String[0]), entity.getTags());
   }
 
   @Test
@@ -128,12 +128,12 @@ class EventsMapperTest {
         Events.builder()
             .id(eventId)
             .title("Original Title")
-            .host_uuid(hostId)
+            .hostId(hostId)
             .capacity(50)
             .startTime(originalTime)
             .endTime(originalTime.plusHours(1))
             .description("Original description")
-            .tags(Arrays.asList("original"))
+            .tags(new String[]{"original"})
             .build();
 
     EventsDto dto = new EventsDto();
@@ -151,10 +151,10 @@ class EventsMapperTest {
     assertEquals(dto.getStartTime(), entity.getStartTime());
     assertEquals(dto.getEndTime(), entity.getEndTime());
     assertEquals("Updated description", entity.getDescription());
-    assertEquals(Arrays.asList("updated", "test"), entity.getTags());
+    assertArrayEquals(new String[]{"updated", "test"}, entity.getTags());
     // ID and host should remain unchanged
     assertEquals(eventId, entity.getId());
-    assertEquals(hostId, entity.getHost_uuid());
+    assertEquals(hostId, entity.getHostId());
   }
 
   @Test
@@ -210,7 +210,7 @@ class EventsMapperTest {
             .title("Original Title")
             .capacity(50)
             .description("Original description")
-            .tags(Arrays.asList("original"))
+            .tags(new String[]{"original"})
             .build();
 
     EventsDto dto = new EventsDto();
@@ -224,7 +224,7 @@ class EventsMapperTest {
     assertEquals(Integer.valueOf(100), entity.getCapacity());
     // These should remain unchanged
     assertEquals("Original description", entity.getDescription());
-    assertEquals(Arrays.asList("original"), entity.getTags());
+    assertArrayEquals(new String[]{"original"}, entity.getTags());
   }
 
   @Test
@@ -238,12 +238,12 @@ class EventsMapperTest {
         Events.builder()
             .id(eventId)
             .title("Test Event")
-            .host_uuid(hostId)
+            .hostId(hostId)
             .capacity(100)
             .startTime(now.plusDays(1))
             .endTime(now.plusDays(1).plusHours(2))
             .description("Test description")
-            .tags(Arrays.asList("test", "event"))
+            .tags(new String[]{"test","event"})
             .build();
     originalEntity.setCreatedAt(now);
     originalEntity.setUpdatedAt(now);
@@ -254,11 +254,11 @@ class EventsMapperTest {
 
     assertEquals(originalEntity.getId(), convertedEntity.getId());
     assertEquals(originalEntity.getTitle(), convertedEntity.getTitle());
-    assertEquals(originalEntity.getHost_uuid(), convertedEntity.getHost_uuid());
+    assertEquals(originalEntity.getHostId(), convertedEntity.getHostId());
     assertEquals(originalEntity.getCapacity(), convertedEntity.getCapacity());
     assertEquals(originalEntity.getStartTime(), convertedEntity.getStartTime());
     assertEquals(originalEntity.getEndTime(), convertedEntity.getEndTime());
     assertEquals(originalEntity.getDescription(), convertedEntity.getDescription());
-    assertEquals(originalEntity.getTags(), convertedEntity.getTags());
+    assertArrayEquals(originalEntity.getTags(), convertedEntity.getTags());
   }
 }

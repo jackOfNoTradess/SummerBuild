@@ -17,12 +17,12 @@ public class EventsMapper implements GenericMapper<Events, EventsDto> {
     EventsDto dto = new EventsDto();
     dto.setId(entity.getId());
     dto.setTitle(entity.getTitle());
-    dto.setHostUuid(entity.getHost_uuid());
+    dto.setHostUuid(entity.getHostId());
     dto.setCapacity(entity.getCapacity());
     dto.setStartTime(entity.getStartTime());
     dto.setEndTime(entity.getEndTime());
     dto.setDescription(entity.getDescription());
-    dto.setTags(entity.getTags());
+    dto.setTags(java.util.Arrays.asList(entity.getTags() != null ? entity.getTags() : new String[0]));
     dto.setCreatedAt(entity.getCreatedAt());
     dto.setUpdatedAt(entity.getUpdatedAt());
 
@@ -38,12 +38,17 @@ public class EventsMapper implements GenericMapper<Events, EventsDto> {
     Events entity = new Events();
     entity.setId(dto.getId() != null ? dto.getId() : UUID.randomUUID());
     entity.setTitle(dto.getTitle());
-    entity.setHost_uuid(dto.getHostUuid());
+    entity.setHostId(dto.getHostUuid());
     entity.setCapacity(dto.getCapacity());
     entity.setStartTime(dto.getStartTime());
     entity.setEndTime(dto.getEndTime());
     entity.setDescription(dto.getDescription());
+<<<<<<< HEAD
     entity.setTags(dto.getTags());
+=======
+    entity.setTags(dto.getTags() != null ? dto.getTags().toArray(new String[0]) : null);
+    entity.setPicPath(dto.getPicPath());
+>>>>>>> main
 
     return entity;
   }
@@ -70,7 +75,7 @@ public class EventsMapper implements GenericMapper<Events, EventsDto> {
       entity.setDescription(dto.getDescription());
     }
     if (dto.getTags() != null) {
-      entity.setTags(dto.getTags());
+      entity.setTags(dto.getTags().toArray(new String[0]));
     }
   }
 }

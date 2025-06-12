@@ -1,11 +1,18 @@
 package com.example.SummerBuild.integration;
 
 import static org.assertj.core.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 import com.example.SummerBuild.config.EventsDtoTestByPass;
 import com.example.SummerBuild.config.TestAuthConfig;
 import com.example.SummerBuild.config.TestSecurityConfig;
 import com.example.SummerBuild.dto.EventsDto;
+import com.example.SummerBuild.model.Gender;
+import com.example.SummerBuild.model.User;
+import com.example.SummerBuild.model.UserRole;
+import com.example.SummerBuild.repository.UserRepository;
+import com.example.SummerBuild.service.UserService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDateTime;
@@ -16,6 +23,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
@@ -41,20 +49,53 @@ class EventAPIIntegrationTest {
 
   @LocalServerPort private int port;
 
+  @Autowired private UserRepository userRepository;
+
+  @MockBean private UserService userService;
+
   private String baseUrl;
   private HttpHeaders authHeaders;
   private UUID testHostUuid;
+  private String token;
 
   @BeforeEach
   void setUp() {
     baseUrl = "http://localhost:" + port + "/api/events";
     testHostUuid = signupAndGetUserId();
-    String jwtToken = loginAndGetToken();
+    token = loginAndGetToken();
 
     authHeaders = new HttpHeaders();
     authHeaders.setContentType(MediaType.APPLICATION_JSON);
-    authHeaders.setBearerAuth(jwtToken);
+    authHeaders.setBearerAuth(token);
     objectMapper.addMixIn(EventsDto.class, EventsDtoTestByPass.class);
+
+    // Clear existing data
+    userRepository.deleteAll();
+
+    // Create test user and get token
+    User testUser = new User();
+    testUser.setId(UUID.randomUUID());
+    testUser.setRole(UserRole.ADMIN);
+    testUser.setGender(Gender.MALE);
+    userRepository.save(testUser);
+
+    // Set up UserService mock
+    when(userService.getUserById(any(UUID.class)))
+        .thenAnswer(
+            invocation -> {
+              UUID id = invocation.getArgument(0);
+              return userRepository
+                  .findById(id)
+                  .map(
+                      user -> {
+                        String response =
+                            String.format(
+                                "{\"id\":\"%s\",\"role\":\"%s\",\"gender\":\"%s\"}",
+                                user.getId(), user.getRole(), user.getGender());
+                        return ResponseEntity.ok(response);
+                      })
+                  .orElse(ResponseEntity.notFound().build());
+            });
   }
 
   @AfterEach
@@ -101,10 +142,11 @@ class EventAPIIntegrationTest {
     }
   }
 
+  /** Tests successful creation of an event and verifies DB persistence */
   @Test
   @Order(1)
   @DisplayName("Integration: Create Event → Verify Database Storage → Retrieve via API")
-  void shouldCreateEventAndVerifyFullWorkflow() {
+  void testCreateEvent() {
     System.out.println("=== TEST STARTED ===");
 
     EventsDto newEvent = createValidEventDto();
@@ -132,10 +174,11 @@ class EventAPIIntegrationTest {
     }
   }
 
+  /** Tests updating an event and checks DB reflects the changes */
   @Test
   @Order(2)
   @DisplayName("Integration: Update Event → Verify Database Changes → Confirm via API")
-  void shouldUpdateEventAndVerifyDatabaseChanges() {
+  void testUpdateEvent() {
     EventsDto originalEvent = createValidEventDto();
     originalEvent.setTitle("Original Event");
     originalEvent.setCapacity(50);
@@ -172,10 +215,11 @@ class EventAPIIntegrationTest {
     assertThat(updatedAt).isNotNull();
   }
 
+  /** Tests filtering events by hostUuid and validates DB results */
   @Test
   @Order(3)
   @DisplayName("Integration: Filter Events by Host → Verify Database Query → API Response")
-  void shouldFilterEventsByHostAndVerifyDatabaseQuery() {
+  void testFilterByHost() {
     EventsDto event1 = createValidEventDto();
     event1.setTitle("Host1 Event 1");
     event1.setCapacity(50);
@@ -217,10 +261,11 @@ class EventAPIIntegrationTest {
     assertThat(host1Count).isEqualTo(2);
   }
 
+  /** Tests deleting an event and verifies it is removed from DB */
   @Test
   @Order(4)
   @DisplayName("Integration: Delete Event → Verify Database Removal → Confirm 404 Response")
-  void shouldDeleteEventAndVerifyDatabaseRemoval() {
+  void testDeleteEvent() {
     EventsDto eventToDelete = createValidEventDto();
     eventToDelete.setTitle("Event to Delete");
 
@@ -270,10 +315,11 @@ class EventAPIIntegrationTest {
     assertThat(getResponse.getStatusCode()).isIn(HttpStatus.NOT_FOUND, HttpStatus.FORBIDDEN);
   }
 
+  /** Tests invalid input handling and ensures DB rollback occurs */
   @Test
   @Order(5)
   @DisplayName("Integration: Validation Errors → Database Rollback → Error Response")
-  void shouldHandleValidationErrorsWithDatabaseRollback() {
+  void testValidationRollback() {
     EventsDto invalidEvent = new EventsDto();
     invalidEvent.setTitle("");
     invalidEvent.setCapacity(-10);
@@ -293,10 +339,11 @@ class EventAPIIntegrationTest {
     assertThat(countAfter).isEqualTo(countBefore);
   }
 
+  /** Tests retrieval of all events and validates response correctness */
   @Test
   @Order(6)
   @DisplayName("Integration: Get All Events → Database Query → Pagination Response")
-  void shouldGetAllEventsFromDatabaseWithCorrectResponse() {
+  void testGetAllEvents() {
     EventsDto event1 = createValidEventDto();
     event1.setTitle("Test Event 1");
     event1.setCapacity(51);
@@ -350,10 +397,11 @@ class EventAPIIntegrationTest {
                     && event.getCreatedAt() != null);
   }
 
+  /** Tests that endpoints reject unauthenticated access */
   @Test
   @Order(7)
   @DisplayName("Integration: Authentication Flow → Security → Database Access")
-  void shouldEnforceAuthenticationForDatabaseAccess() {
+  void testAuthRequired() {
     HttpHeaders noAuthHeaders = new HttpHeaders();
     noAuthHeaders.setContentType(MediaType.APPLICATION_JSON);
     HttpEntity<Void> unauthenticatedRequest = new HttpEntity<>(noAuthHeaders);
@@ -369,10 +417,11 @@ class EventAPIIntegrationTest {
     assertThat(authResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
   }
 
+  /** Tests concurrent operations and ensures DB consistency is maintained */
   @Test
   @Order(8)
   @DisplayName("Integration: Concurrent Operations → Database Consistency → API Responses")
-  void shouldHandleConcurrentOperationsWithDatabaseConsistency() {
+  void testConcurrentAccess() {
     EventsDto concurrentEvent = createValidEventDto();
     concurrentEvent.setTitle("Concurrent Test Event");
 
@@ -396,26 +445,6 @@ class EventAPIIntegrationTest {
     String sql = "SELECT title FROM events WHERE id = ?";
     String dbTitle = jdbcTemplate.queryForObject(sql, String.class, eventId);
     assertThat(dbTitle).isEqualTo("Concurrent Test Event");
-  }
-
-  private void setupTestEventData() {
-    String insertSql =
-        """
-            INSERT INTO events (id, title, host_id, capacity, start_time, end_time, description, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        """;
-
-    LocalDateTime now = LocalDateTime.now();
-    jdbcTemplate.update(
-        insertSql,
-        UUID.randomUUID(),
-        "Test Event",
-        testHostUuid,
-        50,
-        now.plusDays(1),
-        now.plusDays(1).plusHours(2),
-        "Test event description",
-        now);
   }
 
   private EventsDto createValidEventDto() {

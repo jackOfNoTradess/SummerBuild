@@ -146,7 +146,11 @@ class EventsControllerTest {
   @DisplayName("POST /api/events - sad flow (invalid data)")
   void whenCreateEvent_sadFlow_returns400() throws Exception {
     EventsDto invalidDto = new EventsDto();
-    // Missing required fields
+    invalidDto.setTitle(""); // Empty title
+    invalidDto.setCapacity(-10); // Negative capacity
+    invalidDto.setHostUuid(testHostId); // Valid host ID
+    invalidDto.setStartTime(LocalDateTime.now().plusDays(2)); // Start time
+    invalidDto.setEndTime(LocalDateTime.now().plusDays(1)); // End time before start time
 
     String eventJson = objectMapper.writeValueAsString(invalidDto);
 

@@ -54,15 +54,6 @@ build/
 # Help files
 HELP.md
 
-# Environment files
-.env
-.env.*
-!.env.example
-**/application.properties
-!**/application.properties.template
-**/env.properties
-!**/env.properties.template
-
 ### STS ###
 .apt_generated
 .classpath
@@ -99,6 +90,7 @@ build/
 !**/application.properties.template
 **/env.properties
 **/application-test.properties
+**/application-flyway-test.properties
 **/application-integration.properties
 !**/env.properties.template
 

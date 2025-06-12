@@ -36,9 +36,15 @@ permissions:
 
 env:
   JAVA_VERSION: '21'
-  DB_NAME: ${{ secrets.POSTGRES_DB }}
+  DB_NAME: "testdb_${{ github.run_id }}"  # Unique DB per run to counter @Commit
   DB_USER: ${{ secrets.POSTGRES_USER }}
   DB_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+  CI: true  # Set CI environment variable globally
+  # Supabase mock configuration
+  SUPABASE_URL: http://localhost:54321
+  SUPABASE_KEY: dummyAnonKey
+  SUPABASE_JWT_SECRET: c3VwZXItc2VjcmV0LWp3dC10b2tlbi13aXRoLWF0LWxlYXN0LTMyLWNoYXJhY3RlcnMtbG9uZw==
+  SUPABASE_SERVICE_KEY: dummyServiceKey
 
 jobs:
   integration-setup: 
@@ -48,6 +54,16 @@ jobs:
     defaults:
       run:
         working-directory: Backend
+
+    env:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/testdb_${{ github.run_id }}
+      SPRING_DATASOURCE_USERNAME: ${{ secrets.POSTGRES_USER }}
+      SPRING_DATASOURCE_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+      # Supabase mock configuration
+      SUPABASE_URL: http://localhost:54321
+      SUPABASE_KEY: dummyAnonKey
+      SUPABASE_JWT_SECRET: c3VwZXItc2VjcmV0LWp3dC10b2tlbi13aXRoLWF0LWxlYXN0LTMyLWNoYXJhY3RlcnMtbG9uZw==
+      SUPABASE_SERVICE_KEY: dummyServiceKey
 
     # PostgreSQL service container for integration testing
     services:
@@ -73,6 +89,9 @@ jobs:
       db-port: 5432
 
     steps:
+      - name: "Set up Docker"
+        uses: docker/setup-buildx-action@v3
+
       - name: "Getting Code"
         uses: actions/checkout@v4
         with:
@@ -104,23 +123,41 @@ jobs:
           echo "DB_NAME: '${{ env.DB_NAME }}'"
           echo "DB_USER: '${{ env.DB_USER }}'"
           echo "DB_PASSWORD length: ${#DB_PASSWORD}"
+          echo "CI environment: $CI"
+          echo "Supabase URL: $SUPABASE_URL"
           echo "All environment variables that start with POSTGRES:"
           env | grep POSTGRES || echo "No POSTGRES variables found"
         env:
           DB_NAME: ${{ env.DB_NAME }}
           DB_USER: ${{ env.DB_USER }}
           DB_PASSWORD: ${{ env.DB_PASSWORD }}
+          CI: ${{ env.CI }}
+          SUPABASE_URL: ${{ env.SUPABASE_URL }}
 
       - name: "Stage 1 Information"
-        if: github.event_name == 'repository_dispatch'
+        if: |
+          github.event_name == 'repository_dispatch' || 
+          github.event_name == 'workflow_call' ||
+          (github.event_name == 'workflow_dispatch' && github.event.inputs.sha)
         run: |
           echo "==============================="
           echo " STAGE 2: INTEGRATION TESTING  "
           echo "==============================="
-          echo "Triggered by Stage 1 completion"
-          echo "Source SHA: ${{ github.event.client_payload.sha }}"
-          echo "Source Ref: ${{ github.event.client_payload.ref }}"
-          echo "Stage 1 Run ID: ${{ github.event.client_payload.stage1_run_id }}"
+          if [ "${{ github.event_name }}" == "repository_dispatch" ]; then
+            echo "Triggered by Stage 1 completion (repository_dispatch)"
+            echo "Source SHA: ${{ github.event.client_payload.sha }}"
+            echo "Source Ref: ${{ github.event.client_payload.ref }}"
+            echo "Stage 1 Run ID: ${{ github.event.client_payload.stage1_run_id }}"
+          elif [ "${{ github.event_name }}" == "workflow_call" ]; then
+            echo "Triggered by Stage 1 completion (workflow_call)"
+            echo "Source SHA: ${{ inputs.sha }}"
+            echo "Source Ref: ${{ inputs.ref }}"
+            echo "Stage 1 Run ID: ${{ inputs.stage1_run_id }}"
+          else
+            echo "Triggered manually or by push"
+            echo "Source SHA: ${{ github.sha }}"
+            echo "Source Ref: ${{ github.ref }}"
+          fi
           echo "============================="
 
       - name: "Set up JDK 21"
@@ -271,6 +308,69 @@ jobs:
           echo ""
           echo "=============================================="
 
+      - name: "Create CI-specific test configuration"
+        run: |
+          echo "Creating CI-specific test configuration for PostgreSQL..."
+          
+          TEST_CONFIG_DIR="src/test/resources"
+          CI_CONFIG_FILE="$TEST_CONFIG_DIR/application-ci.properties"
+          FLYWAY_TEST_CONFIG="$TEST_CONFIG_DIR/application-flyway-test.properties"
+          
+          # Create directory if it doesn't exist
+          mkdir -p $TEST_CONFIG_DIR
+          
+          # Create CI-specific configuration that uses PostgreSQL
+          cat > $CI_CONFIG_FILE << EOF
+          # CI-specific Test Database Configuration (PostgreSQL)
+          spring.datasource.url=jdbc:postgresql://localhost:5432/$DB_NAME
+          spring.datasource.username=$DB_USER
+          spring.datasource.password=$DB_PASSWORD
+          spring.datasource.driver-class-name=org.postgresql.Driver
+          
+          # Hibernate Configuration for PostgreSQL
+          spring.jpa.hibernate.ddl-auto=create-drop
+          spring.jpa.database-platform=org.hibernate.dialect.PostgreSQLDialect
+          spring.jpa.show-sql=true
+          spring.jpa.properties.hibernate.format_sql=true
+          
+          # Server Configuration for CI
+          server.port=0
+          
+          # Test Configuration
+          logging.level.org.springframework.web=DEBUG
+          logging.level.com.example.SummerBuild=DEBUG
+          logging.level.org.springframework.security=DEBUG
+          logging.level.org.springframework.boot.web.embedded.tomcat=INFO
+          
+          # Bean override configuration
+          spring.main.allow-bean-definition-overriding=true
+
+          # Supabase Configuration
+          supabase.url=$SUPABASE_URL
+          supabase.key=$SUPABASE_KEY
+          supabase.jwt.secret=$SUPABASE_JWT_SECRET
+          supabase.serviceKey=$SUPABASE_SERVICE_KEY
+          supabase.auth.enabled=true
+          EOF
+
+          # Create Flyway test configuration
+          cat > $FLYWAY_TEST_CONFIG << EOF
+          # Flyway Test Configuration
+          spring.flyway.enabled=true
+          spring.flyway.locations=classpath:db/migration
+          spring.flyway.clean-disabled=false
+          spring.flyway.baseline-on-migrate=true
+          spring.flyway.validate-on-migrate=true
+          spring.flyway.schemas=public
+          spring.flyway.default-schema=public
+          EOF
+          
+          echo "CI-specific test configuration created:"
+          cat $CI_CONFIG_FILE
+          echo ""
+          echo "Flyway test configuration created:"
+          cat $FLYWAY_TEST_CONFIG
+
   integration-tests:
       name: "Integration Tests"
       runs-on: ubuntu-latest
@@ -314,9 +414,9 @@ jobs:
           run: |
             echo "Creating CI-specific test configuration for PostgreSQL..."
             
-            # Create a CI-specific properties file that will override the H2 settings
             TEST_CONFIG_DIR="src/test/resources"
             CI_CONFIG_FILE="$TEST_CONFIG_DIR/application-ci.properties"
+            FLYWAY_TEST_CONFIG="$TEST_CONFIG_DIR/application-flyway-test.properties"
             
             # Create directory if it doesn't exist
             mkdir -p $TEST_CONFIG_DIR
@@ -338,40 +438,40 @@ jobs:
             # Server Configuration for CI
             server.port=0
             
-            # Disable Flyway for tests - let Hibernate create schema from entities
-            spring.flyway.enabled=false
-            
             # Test Configuration
             logging.level.org.springframework.web=DEBUG
             logging.level.com.example.SummerBuild=DEBUG
             logging.level.org.springframework.security=DEBUG
             logging.level.org.springframework.boot.web.embedded.tomcat=INFO
             
-            # Supabase Test Configuration (same as local)
-            supabase.auth.url=\${SUPABASE_URL:http://localhost:54321}
-            supabase.anonKey=\${SUPABASE_ANON_KEY:dummyAnonKey}
-            supabase.jwtSecret=\${SUPABASE_JWT_SECRET:c3VwZXItc2VjcmV0LWp3dC10b2tlbi13aXRoLWF0LWxlYXN0LTMyLWNoYXJhY3RlcnMtbG9uZw==}
-            supabase.serviceKey=\${SUPABASE_SERVICE_KEY:dummyServiceKey}
-            
             # Bean override configuration
             spring.main.allow-bean-definition-overriding=true
+
+            # Supabase Configuration
+            supabase.url=$SUPABASE_URL
+            supabase.key=$SUPABASE_KEY
+            supabase.jwt.secret=$SUPABASE_JWT_SECRET
+            supabase.serviceKey=$SUPABASE_SERVICE_KEY
+            supabase.auth.enabled=true
+            EOF
+
+            # Create Flyway test configuration
+            cat > $FLYWAY_TEST_CONFIG << EOF
+            # Flyway Test Configuration
+            spring.flyway.enabled=true
+            spring.flyway.locations=classpath:db/migration
+            spring.flyway.clean-disabled=false
+            spring.flyway.baseline-on-migrate=true
+            spring.flyway.validate-on-migrate=true
+            spring.flyway.schemas=public
+            spring.flyway.default-schema=public
             EOF
             
             echo "CI-specific test configuration created:"
             cat $CI_CONFIG_FILE
             echo ""
-            echo "Local H2 configuration preserved in application-test.properties"
-            
-            # Show the difference
-            echo ""
-            echo "=== LOCAL vs CI CONFIGURATION ==="
-            echo "Local (H2): Uses application-test.properties"
-            echo "CI (PostgreSQL): Uses application-ci.properties"
-            echo "================================="
-          env:
-            DB_NAME: ${{ env.DB_NAME }}
-            DB_USER: ${{ env.DB_USER }}
-            DB_PASSWORD: ${{ env.DB_PASSWORD }}
+            echo "Flyway test configuration created:"
+            cat $FLYWAY_TEST_CONFIG
 
         - name: "Wait for PostgreSQL to be ready"
           run: |
@@ -412,16 +512,22 @@ jobs:
             echo "=============================================="
             echo ""
             echo "Database: PostgreSQL (localhost:5432) - Real integration testing"
-            echo "Local Development: H2 in-memory (preserved)"
-            echo "Spring Profiles: test,ci"
-            echo "Infrastructure verified by previous job"
+            echo "Spring Profiles: test,ci,flyway-test"
+            echo "CI Environment: $CI"
+            echo "Database URL: jdbc:postgresql://localhost:5432/$DB_NAME"
+            echo "Supabase URL: $SUPABASE_URL"
             echo ""
             
-            # Run with both test and ci profiles
-            # ci profile will override H2 settings with PostgreSQL
             mvn test \
-              -Dspring.profiles.active=test,ci \
-              -Dtest="EventAPIIntegrationTest" \
+              -Dspring.profiles.active=test,ci,flyway-test \
+              -Dspring.datasource.url=jdbc:postgresql://localhost:5432/$DB_NAME \
+              -Dspring.datasource.username=$DB_USER \
+              -Dspring.datasource.password=$DB_PASSWORD \
+              -Dsupabase.url=$SUPABASE_URL \
+              -Dsupabase.key=$SUPABASE_KEY \
+              -Dsupabase.jwt.secret=$SUPABASE_JWT_SECRET \
+              -Dsupabase.serviceKey=$SUPABASE_SERVICE_KEY \
+              -Dtest="**/*IntegrationTest" \
               -B
             
             echo ""
@@ -431,6 +537,24 @@ jobs:
             DB_NAME: ${{ env.DB_NAME }}
             DB_USER: ${{ env.DB_USER }}
             DB_PASSWORD: ${{ env.DB_PASSWORD }}
+            CI: ${{ env.CI }}
+            SUPABASE_URL: ${{ env.SUPABASE_URL }}
+            SUPABASE_KEY: ${{ env.SUPABASE_KEY }}
+            SUPABASE_JWT_SECRET: ${{ env.SUPABASE_JWT_SECRET }}
+            SUPABASE_SERVICE_KEY: ${{ env.SUPABASE_SERVICE_KEY }}
+
+        - name: "Debug Test Reports Location"
+          if: always()
+          run: |
+            echo "Looking for test reports..."
+            find . -name "*.xml" -path "*/surefire-reports/*" 2>/dev/null || echo "No surefire XML reports found"
+            find . -name "surefire-reports" -type d 2>/dev/null || echo "No surefire-reports directory found"
+            echo "Contents of target directory:"
+            ls -la target/ 2>/dev/null || echo "No target directory found"
+            if [ -d "target/surefire-reports" ]; then
+              echo "Contents of target/surefire-reports:"
+              ls -la target/surefire-reports/
+            fi
 
         - name: "Integration Test Results Summary"
           if: always()  # Run even if tests fail
@@ -439,16 +563,29 @@ jobs:
             echo "       INTEGRATION TEST RESULTS SUMMARY       "
             echo "=============================================="
             echo ""
-            if [ -f "target/surefire-reports/TEST-*.xml" ]; then
-              echo "Test reports generated:"
-              ls -la target/surefire-reports/TEST-*IntegrationTest.xml 2>/dev/null || echo "No integration test reports found"
+            
+            # Check if surefire-reports directory exists
+            if [ -d "target/surefire-reports" ]; then
+              echo "Test reports found in target/surefire-reports/:"
+              ls -la target/surefire-reports/
               
-              # Show test summary
+              # Show test summary for all XML files
               echo ""
-              echo "Test Results:"
-              grep -h "tests=" target/surefire-reports/TEST-*IntegrationTest.xml 2>/dev/null | head -5 || echo "Could not extract test summary"
+              echo "Test Results Summary:"
+              for xml_file in target/surefire-reports/TEST-*.xml; do
+                if [ -f "$xml_file" ]; then
+                  echo "----------------------------------------------"
+                  echo "Test Suite: $(basename "$xml_file")"
+                  echo "----------------------------------------------"
+                  grep -h "tests=" "$xml_file" | head -1
+                  grep -h "failures=" "$xml_file" | head -1
+                  grep -h "errors=" "$xml_file" | head -1
+                  grep -h "skipped=" "$xml_file" | head -1
+                  echo ""
+                fi
+              done
             else
-              echo "No test reports directory found"
+              echo "No test reports directory found at target/surefire-reports/"
             fi
             echo ""
             echo "=============================================="
