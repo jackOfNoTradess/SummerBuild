@@ -8,8 +8,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -17,6 +16,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.example.SummerBuild.dto.EventsDto;
 import com.example.SummerBuild.service.EventsService;
 import com.example.SummerBuild.service.EventsService.ResourceNotFoundException;
+import com.example.SummerBuild.util.FileLoaderService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDateTime;
 import java.util.Arrays;
@@ -31,8 +31,10 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.core.Authentication;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 @ExtendWith(MockitoExtension.class)
@@ -40,10 +42,15 @@ class EventsControllerTest {
 
   private MockMvc mockMvc;
 
-  @Mock private EventsService eventsService;
-  @Mock private Authentication authentication;
+  @Mock
+  private EventsService eventsService;
+  @Mock
+  private FileLoaderService fileLoaderService;
+  @Mock
+  private Authentication authentication;
 
-  @InjectMocks private EventsController eventsController;
+  @InjectMocks
+  private EventsController eventsController;
 
   private ObjectMapper objectMapper;
   private UUID testEventId;
@@ -52,12 +59,11 @@ class EventsControllerTest {
 
   @BeforeEach
   void setUp() {
-    mockMvc =
-        MockMvcBuilders.standaloneSetup(eventsController)
-            .setMessageConverters(
-                new org.springframework.http.converter.StringHttpMessageConverter(),
-                new MappingJackson2HttpMessageConverter())
-            .build();
+    mockMvc = MockMvcBuilders.standaloneSetup(eventsController)
+        .setMessageConverters(
+            new org.springframework.http.converter.StringHttpMessageConverter(),
+            new MappingJackson2HttpMessageConverter())
+        .build();
 
     objectMapper = new ObjectMapper();
     objectMapper.findAndRegisterModules();
@@ -127,14 +133,20 @@ class EventsControllerTest {
   void whenCreateEvent_happyFlow_returns201() throws Exception {
     given(authentication.getName()).willReturn(testHostId.toString());
     given(eventsService.create(any(EventsDto.class), eq(testHostId))).willReturn(testEventDto);
+    given(fileLoaderService.uploadFile(any(), eq(testEventId), eq(testHostId)))
+        .willReturn("Files uploaded successfully");
 
     String eventJson = objectMapper.writeValueAsString(testEventDto);
+    MockMultipartFile eventPart = new MockMultipartFile("event", "", MediaType.APPLICATION_JSON_VALUE,
+        eventJson.getBytes());
+    MockMultipartFile filePart = new MockMultipartFile("files", "test.jpg", MediaType.IMAGE_JPEG_VALUE,
+        "test image content".getBytes());
 
     mockMvc
         .perform(
-            post("/api/events")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(eventJson)
+            multipart("/api/events")
+                .file(eventPart)
+                .file(filePart)
                 .principal(authentication))
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$.title").value("Test Event"));
@@ -152,13 +164,19 @@ class EventsControllerTest {
     invalidDto.setStartTime(LocalDateTime.now().plusDays(2)); // Start time
     invalidDto.setEndTime(LocalDateTime.now().plusDays(1)); // End time before start time
 
+    given(authentication.getName()).willReturn(testHostId.toString());
+
     String eventJson = objectMapper.writeValueAsString(invalidDto);
+    MockMultipartFile eventPart = new MockMultipartFile("event", "", MediaType.APPLICATION_JSON_VALUE,
+        eventJson.getBytes());
+    MockMultipartFile filePart = new MockMultipartFile("files", "test.jpg", MediaType.IMAGE_JPEG_VALUE,
+        "test image content".getBytes());
 
     mockMvc
         .perform(
-            post("/api/events")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(eventJson)
+            multipart("/api/events")
+                .file(eventPart)
+                .file(filePart)
                 .principal(authentication))
         .andExpect(status().isBadRequest());
   }
@@ -169,15 +187,29 @@ class EventsControllerTest {
     EventsDto updatedDto = createTestEventDto();
     updatedDto.setTitle("Updated Event");
 
+    given(authentication.getName()).willReturn(testHostId.toString());
+    given(eventsService.findById(testEventId)).willReturn(testEventDto);
     given(eventsService.update(eq(testEventId), any(EventsDto.class))).willReturn(updatedDto);
+    given(fileLoaderService.uploadFile(any(), eq(testEventId), eq(testHostId)))
+        .willReturn("Files uploaded successfully");
 
     String eventJson = objectMapper.writeValueAsString(updatedDto);
+    MockMultipartFile eventPart = new MockMultipartFile("event", "", MediaType.APPLICATION_JSON_VALUE,
+        eventJson.getBytes());
+    MockMultipartFile filePart = new MockMultipartFile("files", "test.jpg", MediaType.IMAGE_JPEG_VALUE,
+        "test image content".getBytes());
+
+    MockHttpServletRequestBuilder requestBuilder = multipart("/api/events/{id}", testEventId)
+        .file(eventPart)
+        .file(filePart)
+        .principal(authentication);
+    requestBuilder.with(request -> {
+      request.setMethod("PUT");
+      return request;
+    });
 
     mockMvc
-        .perform(
-            put("/api/events/{id}", testEventId)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(eventJson))
+        .perform(requestBuilder)
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.title").value("Updated Event"));
 
@@ -187,19 +219,30 @@ class EventsControllerTest {
   @Test
   @DisplayName("PUT /api/events/{id} - sad flow (not found)")
   void whenUpdateEvent_sadFlow_returns404() throws Exception {
-    given(eventsService.update(eq(testEventId), any(EventsDto.class)))
+    given(authentication.getName()).willReturn(testHostId.toString());
+    given(eventsService.findById(testEventId))
         .willThrow(new ResourceNotFoundException("Event not found with id: " + testEventId));
 
     String eventJson = objectMapper.writeValueAsString(testEventDto);
+    MockMultipartFile eventPart = new MockMultipartFile("event", "", MediaType.APPLICATION_JSON_VALUE,
+        eventJson.getBytes());
+    MockMultipartFile filePart = new MockMultipartFile("files", "test.jpg", MediaType.IMAGE_JPEG_VALUE,
+        "test image content".getBytes());
+
+    MockHttpServletRequestBuilder requestBuilder = multipart("/api/events/{id}", testEventId)
+        .file(eventPart)
+        .file(filePart)
+        .principal(authentication);
+    requestBuilder.with(request -> {
+      request.setMethod("PUT");
+      return request;
+    });
 
     mockMvc
-        .perform(
-            put("/api/events/{id}", testEventId)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(eventJson))
+        .perform(requestBuilder)
         .andExpect(status().isNotFound());
 
-    verify(eventsService).update(eq(testEventId), any(EventsDto.class));
+    verify(eventsService).findById(testEventId);
   }
 
   @Test
