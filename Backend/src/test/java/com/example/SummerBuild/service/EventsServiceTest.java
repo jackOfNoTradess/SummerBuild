@@ -53,7 +53,7 @@ class EventsServiceTest {
         .startTime(LocalDateTime.now().plusDays(1))
         .endTime(LocalDateTime.now().plusDays(1).plusHours(2))
         .description("Test event description")
-        .tags(new String[]{"test", "event"})
+        .tags(new String[] {"test", "event"})
         .build();
   }
 

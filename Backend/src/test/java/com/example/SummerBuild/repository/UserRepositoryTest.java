@@ -2,6 +2,7 @@ package com.example.SummerBuild.repository;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.example.SummerBuild.SummerBuildApplication;
 import com.example.SummerBuild.model.Gender;
 import com.example.SummerBuild.model.User;
 import com.example.SummerBuild.model.UserRole;
@@ -14,7 +15,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
-import com.example.SummerBuild.SummerBuildApplication;
 
 @DataJpaTest
 @ActiveProfiles("test")

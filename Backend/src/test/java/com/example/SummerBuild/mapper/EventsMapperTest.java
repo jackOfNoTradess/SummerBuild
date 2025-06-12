@@ -38,7 +38,7 @@ class EventsMapperTest {
             .startTime(startTime)
             .endTime(endTime)
             .description("Test description")
-            .tags(new String[]{"test", "event"})
+            .tags(new String[] {"test", "event"})
             .build();
     event.setCreatedAt(now);
     event.setUpdatedAt(now);
@@ -133,7 +133,7 @@ class EventsMapperTest {
             .startTime(originalTime)
             .endTime(originalTime.plusHours(1))
             .description("Original description")
-            .tags(new String[]{"original"})
+            .tags(new String[] {"original"})
             .build();
 
     EventsDto dto = new EventsDto();
@@ -151,7 +151,7 @@ class EventsMapperTest {
     assertEquals(dto.getStartTime(), entity.getStartTime());
     assertEquals(dto.getEndTime(), entity.getEndTime());
     assertEquals("Updated description", entity.getDescription());
-    assertArrayEquals(new String[]{"updated", "test"}, entity.getTags());
+    assertArrayEquals(new String[] {"updated", "test"}, entity.getTags());
     // ID and host should remain unchanged
     assertEquals(eventId, entity.getId());
     assertEquals(hostId, entity.getHostId());
@@ -210,7 +210,7 @@ class EventsMapperTest {
             .title("Original Title")
             .capacity(50)
             .description("Original description")
-            .tags(new String[]{"original"})
+            .tags(new String[] {"original"})
             .build();
 
     EventsDto dto = new EventsDto();
@@ -224,7 +224,7 @@ class EventsMapperTest {
     assertEquals(Integer.valueOf(100), entity.getCapacity());
     // These should remain unchanged
     assertEquals("Original description", entity.getDescription());
-    assertArrayEquals(new String[]{"original"}, entity.getTags());
+    assertArrayEquals(new String[] {"original"}, entity.getTags());
   }
 
   @Test
@@ -243,7 +243,7 @@ class EventsMapperTest {
             .startTime(now.plusDays(1))
             .endTime(now.plusDays(1).plusHours(2))
             .description("Test description")
-            .tags(new String[]{"test","event"})
+            .tags(new String[] {"test", "event"})
             .build();
     originalEntity.setCreatedAt(now);
     originalEntity.setUpdatedAt(now);
