@@ -94,3 +94,6 @@ build/
 **/application-integration.properties
 !**/env.properties.template
 
+### Frontend ###
+node_modules
+*/dist/
