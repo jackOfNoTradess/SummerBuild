@@ -43,12 +43,7 @@ public class EventsMapper implements GenericMapper<Events, EventsDto> {
     entity.setStartTime(dto.getStartTime());
     entity.setEndTime(dto.getEndTime());
     entity.setDescription(dto.getDescription());
-<<<<<<< HEAD
-    entity.setTags(dto.getTags());
-=======
     entity.setTags(dto.getTags() != null ? dto.getTags().toArray(new String[0]) : null);
-    entity.setPicPath(dto.getPicPath());
->>>>>>> main
 
     return entity;
   }

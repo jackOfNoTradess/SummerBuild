@@ -38,12 +38,7 @@ class EventsRepositoryTest {
             .startTime(LocalDateTime.now().plusDays(1))
             .endTime(LocalDateTime.now().plusDays(1).plusHours(2))
             .description("First test event")
-<<<<<<< HEAD
-            .tags(Arrays.asList("test", "event1"))
-=======
             .tags(new String[]{"test","event1"})
-            .picPath("/images/event1.jpg")
->>>>>>> main
             .build();
 
     event2 =
