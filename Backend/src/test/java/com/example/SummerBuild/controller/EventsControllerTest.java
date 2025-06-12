@@ -42,15 +42,11 @@ class EventsControllerTest {
 
   private MockMvc mockMvc;
 
-  @Mock
-  private EventsService eventsService;
-  @Mock
-  private FileLoaderService fileLoaderService;
-  @Mock
-  private Authentication authentication;
+  @Mock private EventsService eventsService;
+  @Mock private FileLoaderService fileLoaderService;
+  @Mock private Authentication authentication;
 
-  @InjectMocks
-  private EventsController eventsController;
+  @InjectMocks private EventsController eventsController;
 
   private ObjectMapper objectMapper;
   private UUID testEventId;
@@ -59,11 +55,12 @@ class EventsControllerTest {
 
   @BeforeEach
   void setUp() {
-    mockMvc = MockMvcBuilders.standaloneSetup(eventsController)
-        .setMessageConverters(
-            new org.springframework.http.converter.StringHttpMessageConverter(),
-            new MappingJackson2HttpMessageConverter())
-        .build();
+    mockMvc =
+        MockMvcBuilders.standaloneSetup(eventsController)
+            .setMessageConverters(
+                new org.springframework.http.converter.StringHttpMessageConverter(),
+                new MappingJackson2HttpMessageConverter())
+            .build();
 
     objectMapper = new ObjectMapper();
     objectMapper.findAndRegisterModules();
@@ -137,17 +134,14 @@ class EventsControllerTest {
         .willReturn("Files uploaded successfully");
 
     String eventJson = objectMapper.writeValueAsString(testEventDto);
-    MockMultipartFile eventPart = new MockMultipartFile("event", "", MediaType.APPLICATION_JSON_VALUE,
-        eventJson.getBytes());
-    MockMultipartFile filePart = new MockMultipartFile("files", "test.jpg", MediaType.IMAGE_JPEG_VALUE,
-        "test image content".getBytes());
+    MockMultipartFile eventPart =
+        new MockMultipartFile("event", "", MediaType.APPLICATION_JSON_VALUE, eventJson.getBytes());
+    MockMultipartFile filePart =
+        new MockMultipartFile(
+            "files", "test.jpg", MediaType.IMAGE_JPEG_VALUE, "test image content".getBytes());
 
     mockMvc
-        .perform(
-            multipart("/api/events")
-                .file(eventPart)
-                .file(filePart)
-                .principal(authentication))
+        .perform(multipart("/api/events").file(eventPart).file(filePart).principal(authentication))
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$.title").value("Test Event"));
 
@@ -167,17 +161,14 @@ class EventsControllerTest {
     given(authentication.getName()).willReturn(testHostId.toString());
 
     String eventJson = objectMapper.writeValueAsString(invalidDto);
-    MockMultipartFile eventPart = new MockMultipartFile("event", "", MediaType.APPLICATION_JSON_VALUE,
-        eventJson.getBytes());
-    MockMultipartFile filePart = new MockMultipartFile("files", "test.jpg", MediaType.IMAGE_JPEG_VALUE,
-        "test image content".getBytes());
+    MockMultipartFile eventPart =
+        new MockMultipartFile("event", "", MediaType.APPLICATION_JSON_VALUE, eventJson.getBytes());
+    MockMultipartFile filePart =
+        new MockMultipartFile(
+            "files", "test.jpg", MediaType.IMAGE_JPEG_VALUE, "test image content".getBytes());
 
     mockMvc
-        .perform(
-            multipart("/api/events")
-                .file(eventPart)
-                .file(filePart)
-                .principal(authentication))
+        .perform(multipart("/api/events").file(eventPart).file(filePart).principal(authentication))
         .andExpect(status().isBadRequest());
   }
 
@@ -194,19 +185,22 @@ class EventsControllerTest {
         .willReturn("Files uploaded successfully");
 
     String eventJson = objectMapper.writeValueAsString(updatedDto);
-    MockMultipartFile eventPart = new MockMultipartFile("event", "", MediaType.APPLICATION_JSON_VALUE,
-        eventJson.getBytes());
-    MockMultipartFile filePart = new MockMultipartFile("files", "test.jpg", MediaType.IMAGE_JPEG_VALUE,
-        "test image content".getBytes());
+    MockMultipartFile eventPart =
+        new MockMultipartFile("event", "", MediaType.APPLICATION_JSON_VALUE, eventJson.getBytes());
+    MockMultipartFile filePart =
+        new MockMultipartFile(
+            "files", "test.jpg", MediaType.IMAGE_JPEG_VALUE, "test image content".getBytes());
 
-    MockHttpServletRequestBuilder requestBuilder = multipart("/api/events/{id}", testEventId)
-        .file(eventPart)
-        .file(filePart)
-        .principal(authentication);
-    requestBuilder.with(request -> {
-      request.setMethod("PUT");
-      return request;
-    });
+    MockHttpServletRequestBuilder requestBuilder =
+        multipart("/api/events/{id}", testEventId)
+            .file(eventPart)
+            .file(filePart)
+            .principal(authentication);
+    requestBuilder.with(
+        request -> {
+          request.setMethod("PUT");
+          return request;
+        });
 
     mockMvc
         .perform(requestBuilder)
@@ -224,23 +218,24 @@ class EventsControllerTest {
         .willThrow(new ResourceNotFoundException("Event not found with id: " + testEventId));
 
     String eventJson = objectMapper.writeValueAsString(testEventDto);
-    MockMultipartFile eventPart = new MockMultipartFile("event", "", MediaType.APPLICATION_JSON_VALUE,
-        eventJson.getBytes());
-    MockMultipartFile filePart = new MockMultipartFile("files", "test.jpg", MediaType.IMAGE_JPEG_VALUE,
-        "test image content".getBytes());
+    MockMultipartFile eventPart =
+        new MockMultipartFile("event", "", MediaType.APPLICATION_JSON_VALUE, eventJson.getBytes());
+    MockMultipartFile filePart =
+        new MockMultipartFile(
+            "files", "test.jpg", MediaType.IMAGE_JPEG_VALUE, "test image content".getBytes());
 
-    MockHttpServletRequestBuilder requestBuilder = multipart("/api/events/{id}", testEventId)
-        .file(eventPart)
-        .file(filePart)
-        .principal(authentication);
-    requestBuilder.with(request -> {
-      request.setMethod("PUT");
-      return request;
-    });
+    MockHttpServletRequestBuilder requestBuilder =
+        multipart("/api/events/{id}", testEventId)
+            .file(eventPart)
+            .file(filePart)
+            .principal(authentication);
+    requestBuilder.with(
+        request -> {
+          request.setMethod("PUT");
+          return request;
+        });
 
-    mockMvc
-        .perform(requestBuilder)
-        .andExpect(status().isNotFound());
+    mockMvc.perform(requestBuilder).andExpect(status().isNotFound());
 
     verify(eventsService).findById(testEventId);
   }
