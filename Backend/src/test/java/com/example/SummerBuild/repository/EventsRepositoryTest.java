@@ -38,7 +38,7 @@ class EventsRepositoryTest {
             .startTime(LocalDateTime.now().plusDays(1))
             .endTime(LocalDateTime.now().plusDays(1).plusHours(2))
             .description("First test event")
-            .tags(new String[]{"test","event1"})
+            .tags(new String[] {"test", "event1"})
             .picPath("/images/event1.jpg")
             .build();
 
@@ -51,7 +51,7 @@ class EventsRepositoryTest {
             .startTime(LocalDateTime.now().plusDays(2))
             .endTime(LocalDateTime.now().plusDays(2).plusHours(3))
             .description("Second test event")
-            .tags(new String[]{"test","event2"})
+            .tags(new String[] {"test", "event2"})
             .picPath("/images/event2.jpg")
             .build();
 
@@ -64,7 +64,7 @@ class EventsRepositoryTest {
             .startTime(LocalDateTime.now().plusDays(3))
             .endTime(LocalDateTime.now().plusDays(3).plusHours(4))
             .description("Third test event")
-            .tags(new String[]{"test", "event3"})
+            .tags(new String[] {"test", "event3"})
             .picPath("/images/event3.jpg")
             .build();
 
@@ -83,7 +83,7 @@ class EventsRepositoryTest {
             .startTime(LocalDateTime.now().plusDays(5))
             .endTime(LocalDateTime.now().plusDays(5).plusHours(2))
             .description("New test event")
-            .tags(new String[]{"new", "test"})
+            .tags(new String[] {"new", "test"})
             .build();
 
     Events savedEvent = eventsRepository.save(newEvent);
@@ -203,7 +203,7 @@ class EventsRepositoryTest {
             .capacity(100)
             .startTime(LocalDateTime.now().plusDays(1))
             .endTime(LocalDateTime.now().plusDays(1).plusHours(2))
-            .tags(new String[]{"music", "outdoor", "festival"})
+            .tags(new String[] {"music", "outdoor", "festival"})
             .build();
 
     Events savedEvent = eventsRepository.save(eventWithTags);

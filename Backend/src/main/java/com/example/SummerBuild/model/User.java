@@ -33,5 +33,4 @@ public class User extends BaseEntity {
 
   @OneToMany(mappedBy = "host", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
   private List<Events> hostedEvents;
-
 }

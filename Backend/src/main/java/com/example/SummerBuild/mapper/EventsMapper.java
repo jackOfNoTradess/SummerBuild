@@ -22,7 +22,8 @@ public class EventsMapper implements GenericMapper<Events, EventsDto> {
     dto.setStartTime(entity.getStartTime());
     dto.setEndTime(entity.getEndTime());
     dto.setDescription(entity.getDescription());
-    dto.setTags(java.util.Arrays.asList(entity.getTags() != null ? entity.getTags() : new String[0]));
+    dto.setTags(
+        java.util.Arrays.asList(entity.getTags() != null ? entity.getTags() : new String[0]));
     dto.setPicPath(entity.getPicPath());
     dto.setCreatedAt(entity.getCreatedAt());
     dto.setUpdatedAt(entity.getUpdatedAt());
