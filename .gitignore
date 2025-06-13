@@ -95,4 +95,6 @@ build/
 
 ### Frontend ###
 node_modules
+*/dist
+.env
 
