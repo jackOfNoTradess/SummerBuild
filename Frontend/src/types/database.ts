@@ -1,31 +1,25 @@
 export interface Database {
   public: {
     Tables: {
-      profiles: {
+      users: {
         Row: {
           id: string;
-          email: string;
-          full_name: string;
-          avatar_url?: string;
-          role: 'student' | 'organizer' | 'admin';
+          role: 'USER' | 'ADMIN' | 'ORGANIZER';
+          gender: 'MALE' | 'FEMALE' | 'OTHERS';
           created_at: string;
           updated_at: string;
         };
         Insert: {
-          id: string;
-          email: string;
-          full_name: string;
-          avatar_url?: string;
-          role?: 'student' | 'organizer' | 'admin';
+          id?: string;
+          role: 'USER' | 'ADMIN' | 'ORGANIZER';
+          gender: 'MALE' | 'FEMALE' | 'OTHERS';
           created_at?: string;
           updated_at?: string;
         };
         Update: {
           id?: string;
-          email?: string;
-          full_name?: string;
-          avatar_url?: string;
-          role?: 'student' | 'organizer' | 'admin';
+          role?: 'USER' | 'ADMIN' | 'ORGANIZER';
+          gender?: 'MALE' | 'FEMALE' | 'OTHERS';
           updated_at?: string;
         };
       };
@@ -33,86 +27,48 @@ export interface Database {
         Row: {
           id: string;
           title: string;
-          description: string;
-          event_date: string;
-          event_time: string;
-          location: string;
-          capacity: number;
-          registered_count: number;
-          image_url?: string;
-          tags: string[];
-          organizer_id: string;
-          registration_deadline: string;
-          additional_details?: string;
+          host_id: string;
+          capacity: number | null;
+          start_time: string;
+          end_time: string;
+          description: string | null;
+          tag: string[] | null;
+          pic_path: string | null;
           created_at: string;
           updated_at: string;
         };
         Insert: {
           id?: string;
           title: string;
-          description: string;
-          event_date: string;
-          event_time: string;
-          location: string;
-          capacity: number;
-          registered_count?: number;
-          image_url?: string;
-          tags: string[];
-          organizer_id: string;
-          registration_deadline: string;
-          additional_details?: string;
+          host_id: string;
+          capacity?: number | null;
+          start_time: string;
+          end_time: string;
+          description?: string | null;
+          tag?: string[] | null;
+          pic_path?: string | null;
           created_at?: string;
           updated_at?: string;
         };
         Update: {
           id?: string;
           title?: string;
-          description?: string;
-          event_date?: string;
-          event_time?: string;
-          location?: string;
-          capacity?: number;
-          registered_count?: number;
-          image_url?: string;
-          tags?: string[];
-          organizer_id?: string;
-          registration_deadline?: string;
-          additional_details?: string;
+          host_id?: string;
+          capacity?: number | null;
+          start_time?: string;
+          end_time?: string;
+          description?: string | null;
+          tag?: string[] | null;
+          pic_path?: string | null;
           updated_at?: string;
-        };
-      };
-      bookings: {
-        Row: {
-          id: string;
-          event_id: string;
-          user_id: string;
-          booking_reference: string;
-          tickets_quantity: number;
-          status: 'confirmed' | 'cancelled';
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          event_id: string;
-          user_id: string;
-          booking_reference: string;
-          tickets_quantity: number;
-          status?: 'confirmed' | 'cancelled';
-          created_at?: string;
-        };
-        Update: {
-          id?: string;
-          event_id?: string;
-          user_id?: string;
-          booking_reference?: string;
-          tickets_quantity?: number;
-          status?: 'confirmed' | 'cancelled';
         };
       };
     };
   };
 }
 
-export type Profile = Database['public']['Tables']['profiles']['Row'];
+export type User = Database['public']['Tables']['users']['Row'];
 export type Event = Database['public']['Tables']['events']['Row'];
-export type Booking = Database['public']['Tables']['bookings']['Row'];
+
+// Legacy type aliases for backward compatibility
+export type Profile = User;
