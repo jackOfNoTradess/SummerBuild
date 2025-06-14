@@ -33,39 +33,36 @@ class EventsRepositoryTest {
         Events.builder()
             .id(UUID.randomUUID())
             .title("Event 1")
-            .host_uuid(hostId1)
+            .hostId(hostId1)
             .capacity(100)
             .startTime(LocalDateTime.now().plusDays(1))
             .endTime(LocalDateTime.now().plusDays(1).plusHours(2))
             .description("First test event")
-            .tags(Arrays.asList("test", "event1"))
-            .picPath("/images/event1.jpg")
+            .tags(new String[] {"test", "event1"})
             .build();
 
     event2 =
         Events.builder()
             .id(UUID.randomUUID())
             .title("Event 2")
-            .host_uuid(hostId1)
+            .hostId(hostId1)
             .capacity(50)
             .startTime(LocalDateTime.now().plusDays(2))
             .endTime(LocalDateTime.now().plusDays(2).plusHours(3))
             .description("Second test event")
-            .tags(Arrays.asList("test", "event2"))
-            .picPath("/images/event2.jpg")
+            .tags(new String[] {"test", "event2"})
             .build();
 
     event3 =
         Events.builder()
             .id(UUID.randomUUID())
             .title("Event 3")
-            .host_uuid(hostId2)
+            .hostId(hostId2)
             .capacity(200)
             .startTime(LocalDateTime.now().plusDays(3))
             .endTime(LocalDateTime.now().plusDays(3).plusHours(4))
             .description("Third test event")
-            .tags(Arrays.asList("test", "event3"))
-            .picPath("/images/event3.jpg")
+            .tags(new String[] {"test", "event3"})
             .build();
 
     eventsRepository.saveAll(Arrays.asList(event1, event2, event3));
@@ -78,12 +75,12 @@ class EventsRepositoryTest {
         Events.builder()
             .id(UUID.randomUUID())
             .title("New Event")
-            .host_uuid(UUID.randomUUID())
+            .hostId(UUID.randomUUID())
             .capacity(75)
             .startTime(LocalDateTime.now().plusDays(5))
             .endTime(LocalDateTime.now().plusDays(5).plusHours(2))
             .description("New test event")
-            .tags(Arrays.asList("new", "test"))
+            .tags(new String[] {"new", "test"})
             .build();
 
     Events savedEvent = eventsRepository.save(newEvent);
@@ -102,7 +99,7 @@ class EventsRepositoryTest {
 
     assertThat(foundEvent).isPresent();
     assertThat(foundEvent.get().getTitle()).isEqualTo("Event 1");
-    assertThat(foundEvent.get().getHost_uuid()).isEqualTo(hostId1);
+    assertThat(foundEvent.get().getHostId()).isEqualTo(hostId1);
   }
 
   @Test
@@ -199,11 +196,11 @@ class EventsRepositoryTest {
         Events.builder()
             .id(UUID.randomUUID())
             .title("Tagged Event")
-            .host_uuid(UUID.randomUUID())
+            .hostId(UUID.randomUUID())
             .capacity(100)
             .startTime(LocalDateTime.now().plusDays(1))
             .endTime(LocalDateTime.now().plusDays(1).plusHours(2))
-            .tags(Arrays.asList("music", "outdoor", "festival"))
+            .tags(new String[] {"music", "outdoor", "festival"})
             .build();
 
     Events savedEvent = eventsRepository.save(eventWithTags);
@@ -219,7 +216,7 @@ class EventsRepositoryTest {
         Events.builder()
             .id(UUID.randomUUID())
             .title("Minimal Event")
-            .host_uuid(UUID.randomUUID())
+            .hostId(UUID.randomUUID())
             .startTime(LocalDateTime.now().plusDays(1))
             .endTime(LocalDateTime.now().plusDays(1).plusHours(2))
             // capacity, description, tags, picPath are null
@@ -232,7 +229,6 @@ class EventsRepositoryTest {
     assertThat(savedEvent.getCapacity()).isNull();
     assertThat(savedEvent.getDescription()).isNull();
     assertThat(savedEvent.getTags()).isNull();
-    assertThat(savedEvent.getPicPath()).isNull();
   }
 
   @Test
@@ -242,7 +238,7 @@ class EventsRepositoryTest {
         Events.builder()
             .id(UUID.randomUUID())
             .title("Timestamp Test Event")
-            .host_uuid(UUID.randomUUID())
+            .hostId(UUID.randomUUID())
             .startTime(LocalDateTime.now().plusDays(1))
             .endTime(LocalDateTime.now().plusDays(1).plusHours(2))
             .build();

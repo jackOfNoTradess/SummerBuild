@@ -1,0 +1,1 @@
+ALTER TABLE events DROP COLUMN pic_path;

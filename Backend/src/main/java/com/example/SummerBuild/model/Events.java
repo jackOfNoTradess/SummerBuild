@@ -2,13 +2,14 @@ package com.example.SummerBuild.model;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "events")
@@ -19,6 +20,7 @@ import lombok.Setter;
 @Builder
 public class Events extends BaseEntity {
   @Id
+  @GeneratedValue(strategy = GenerationType.AUTO)
   @Column(name = "id", nullable = false, columnDefinition = "UUID")
   private UUID id;
 
@@ -26,7 +28,11 @@ public class Events extends BaseEntity {
   private String title;
 
   @Column(name = "host_id", nullable = false)
-  private UUID host_uuid;
+  private UUID hostId;
+
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "host_id", nullable = false, insertable = false, updatable = false)
+  private User host;
 
   @Column(name = "capacity")
   private Integer capacity;
@@ -40,13 +46,7 @@ public class Events extends BaseEntity {
   @Column(name = "description", length = 255)
   private String description;
 
-  @ElementCollection(fetch = FetchType.EAGER)
-  @CollectionTable(name = "event_tags", joinColumns = @JoinColumn(name = "event_id"))
-  @Column(name = "tag")
-  private List<String> tags;
-
-  // Using List instead of Set for simplicity with Hibernate
-
-  @Column(name = "pic_path", length = 255)
-  private String picPath;
+  @JdbcTypeCode(SqlTypes.ARRAY)
+  @Column(name = "tag", columnDefinition = "text[]")
+  private String[] tags;
 }

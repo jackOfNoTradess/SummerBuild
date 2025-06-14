@@ -71,13 +71,13 @@ public class EventsService {
     Events event = eventsMapper.toEntity(eventsDto);
 
     // DEBUG: Check entity before save
-    logger.info("Entity before save - ID: {}, Host UUID: {}", event.getId(), event.getHost_uuid());
+    logger.info("Entity before save - ID: {}, Host UUID: {}", event.getId(), event.getHostId());
 
     Events savedEvent = eventsRepository.save(event);
 
     // DEBUG: Check entity after save
     logger.info(
-        "Entity after save - ID: {}, Host UUID: {}", savedEvent.getId(), savedEvent.getHost_uuid());
+        "Entity after save - ID: {}, Host UUID: {}", savedEvent.getId(), savedEvent.getHostId());
 
     EventsDto resultDto = eventsMapper.toDto(savedEvent);
 
@@ -126,7 +126,7 @@ public class EventsService {
   public List<EventsDto> findByHostUuid(UUID hostUuid) {
     logger.info("Fetching events for host: {}", hostUuid);
     return eventsRepository.findAll().stream()
-        .filter(event -> event.getHost_uuid().equals(hostUuid))
+        .filter(event -> event.getHostId().equals(hostUuid))
         .map(eventsMapper::toDto)
         .toList();
   }
