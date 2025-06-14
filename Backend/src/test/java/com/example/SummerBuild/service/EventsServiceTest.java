@@ -53,8 +53,7 @@ class EventsServiceTest {
         .startTime(LocalDateTime.now().plusDays(1))
         .endTime(LocalDateTime.now().plusDays(1).plusHours(2))
         .description("Test event description")
-        .tags(new String[]{"test", "event"})
-        .picPath("/images/test.jpg")
+        .tags(new String[] {"test", "event"})
         .build();
   }
 
@@ -68,7 +67,6 @@ class EventsServiceTest {
     dto.setEndTime(LocalDateTime.now().plusDays(1).plusHours(2));
     dto.setDescription("Test event description");
     dto.setTags(Arrays.asList("test", "event"));
-    dto.setPicPath("/images/test.jpg");
     return dto;
   }
 

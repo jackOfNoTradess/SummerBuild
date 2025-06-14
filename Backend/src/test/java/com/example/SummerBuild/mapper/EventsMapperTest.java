@@ -38,8 +38,7 @@ class EventsMapperTest {
             .startTime(startTime)
             .endTime(endTime)
             .description("Test description")
-            .tags(new String[]{"test", "event"})
-            .picPath("/images/test.jpg")
+            .tags(new String[] {"test", "event"})
             .build();
     event.setCreatedAt(now);
     event.setUpdatedAt(now);
@@ -55,7 +54,6 @@ class EventsMapperTest {
     assertEquals(event.getEndTime(), dto.getEndTime());
     assertEquals(event.getDescription(), dto.getDescription());
     assertArrayEquals(event.getTags(), dto.getTags().toArray(new String[0]));
-    assertEquals(event.getPicPath(), dto.getPicPath());
     assertEquals(event.getCreatedAt(), dto.getCreatedAt());
     assertEquals(event.getUpdatedAt(), dto.getUpdatedAt());
   }
@@ -84,7 +82,6 @@ class EventsMapperTest {
     dto.setEndTime(endTime);
     dto.setDescription("Test description");
     dto.setTags(Arrays.asList("test", "event"));
-    dto.setPicPath("/images/test.jpg");
 
     Events entity = eventsMapper.toEntity(dto);
 
@@ -97,7 +94,6 @@ class EventsMapperTest {
     assertEquals(dto.getEndTime(), entity.getEndTime());
     assertEquals(dto.getDescription(), entity.getDescription());
     assertArrayEquals(dto.getTags().toArray(new String[0]), entity.getTags());
-    assertEquals(dto.getPicPath(), entity.getPicPath());
   }
 
   @Test
@@ -137,8 +133,7 @@ class EventsMapperTest {
             .startTime(originalTime)
             .endTime(originalTime.plusHours(1))
             .description("Original description")
-            .tags(new String[]{"original"})
-            .picPath("/images/original.jpg")
+            .tags(new String[] {"original"})
             .build();
 
     EventsDto dto = new EventsDto();
@@ -148,7 +143,6 @@ class EventsMapperTest {
     dto.setEndTime(originalTime.plusDays(1).plusHours(2));
     dto.setDescription("Updated description");
     dto.setTags(Arrays.asList("updated", "test"));
-    dto.setPicPath("/images/updated.jpg");
 
     eventsMapper.updateEntityFromDto(dto, entity);
 
@@ -157,8 +151,7 @@ class EventsMapperTest {
     assertEquals(dto.getStartTime(), entity.getStartTime());
     assertEquals(dto.getEndTime(), entity.getEndTime());
     assertEquals("Updated description", entity.getDescription());
-    assertArrayEquals(new String[]{"updated", "test"}, entity.getTags());
-    assertEquals("/images/updated.jpg", entity.getPicPath());
+    assertArrayEquals(new String[] {"updated", "test"}, entity.getTags());
     // ID and host should remain unchanged
     assertEquals(eventId, entity.getId());
     assertEquals(hostId, entity.getHostId());
@@ -217,7 +210,7 @@ class EventsMapperTest {
             .title("Original Title")
             .capacity(50)
             .description("Original description")
-            .tags(new String[]{"original"})
+            .tags(new String[] {"original"})
             .build();
 
     EventsDto dto = new EventsDto();
@@ -231,7 +224,7 @@ class EventsMapperTest {
     assertEquals(Integer.valueOf(100), entity.getCapacity());
     // These should remain unchanged
     assertEquals("Original description", entity.getDescription());
-    assertArrayEquals(new String[]{"original"}, entity.getTags());
+    assertArrayEquals(new String[] {"original"}, entity.getTags());
   }
 
   @Test
@@ -250,8 +243,7 @@ class EventsMapperTest {
             .startTime(now.plusDays(1))
             .endTime(now.plusDays(1).plusHours(2))
             .description("Test description")
-            .tags(new String[]{"test","event"})
-            .picPath("/images/test.jpg")
+            .tags(new String[] {"test", "event"})
             .build();
     originalEntity.setCreatedAt(now);
     originalEntity.setUpdatedAt(now);
@@ -268,6 +260,5 @@ class EventsMapperTest {
     assertEquals(originalEntity.getEndTime(), convertedEntity.getEndTime());
     assertEquals(originalEntity.getDescription(), convertedEntity.getDescription());
     assertArrayEquals(originalEntity.getTags(), convertedEntity.getTags());
-    assertEquals(originalEntity.getPicPath(), convertedEntity.getPicPath());
   }
 }

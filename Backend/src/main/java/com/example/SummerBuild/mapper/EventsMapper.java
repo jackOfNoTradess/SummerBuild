@@ -22,8 +22,8 @@ public class EventsMapper implements GenericMapper<Events, EventsDto> {
     dto.setStartTime(entity.getStartTime());
     dto.setEndTime(entity.getEndTime());
     dto.setDescription(entity.getDescription());
-    dto.setTags(java.util.Arrays.asList(entity.getTags() != null ? entity.getTags() : new String[0]));
-    dto.setPicPath(entity.getPicPath());
+    dto.setTags(
+        java.util.Arrays.asList(entity.getTags() != null ? entity.getTags() : new String[0]));
     dto.setCreatedAt(entity.getCreatedAt());
     dto.setUpdatedAt(entity.getUpdatedAt());
 
@@ -45,7 +45,6 @@ public class EventsMapper implements GenericMapper<Events, EventsDto> {
     entity.setEndTime(dto.getEndTime());
     entity.setDescription(dto.getDescription());
     entity.setTags(dto.getTags() != null ? dto.getTags().toArray(new String[0]) : null);
-    entity.setPicPath(dto.getPicPath());
 
     return entity;
   }
@@ -73,9 +72,6 @@ public class EventsMapper implements GenericMapper<Events, EventsDto> {
     }
     if (dto.getTags() != null) {
       entity.setTags(dto.getTags().toArray(new String[0]));
-    }
-    if (dto.getPicPath() != null) {
-      entity.setPicPath(dto.getPicPath());
     }
   }
 }
