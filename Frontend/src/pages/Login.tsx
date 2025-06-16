@@ -1,36 +1,61 @@
 import React, { useState } from 'react';
-import { Calendar, Chrome, Github, AlertCircle } from 'lucide-react';
+import { Calendar, Chrome, Github, AlertCircle, Mail, Check } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 
 export function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { signInWithGoogle, signInWithGitHub } = useAuth();
+  const [email, setEmail] = useState('');
+  const [magicLinkSent, setMagicLinkSent] = useState(false);
+  const { signInWithMagicLink } = useAuth();
 
-  const handleGoogleSignIn = async () => {
+  const handleMagicLinkSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim()) {
+      setError('Please enter your email address');
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
-      await signInWithGoogle();
+      await signInWithMagicLink(email);
+      setMagicLinkSent(true);
     } catch (err: any) {
-      setError(err.message || 'Failed to sign in with Google');
+      setError(err.message || 'Failed to send magic link');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleGitHubSignIn = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      await signInWithGitHub();
-    } catch (err: any) {
-      setError(err.message || 'Failed to sign in with GitHub');
-    } finally {
-      setLoading(false);
-    }
-  };
+  if (magicLinkSent) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="max-w-md w-full bg-white rounded-lg shadow-sm border border-gray-200 p-8">
+          <div className="text-center">
+            <div className="mx-auto flex items-center justify-center w-12 h-12 bg-green-100 rounded-full mb-4">
+              <Check className="w-6 h-6 text-green-600" />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Check your email</h2>
+            <p className="text-gray-600 mb-6">
+              We've sent a magic link to <strong>{email}</strong>. Click the link in your email to sign in.
+            </p>
+            <button
+              onClick={() => {
+                setMagicLinkSent(false);
+                setEmail('');
+                setError(null);
+              }}
+              className="text-blue-600 hover:text-blue-800 font-medium"
+            >
+              Try a different email
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex">
@@ -97,32 +122,43 @@ export function Login() {
               </div>
             )}
 
-            <div className="space-y-4">
-              <button
-                onClick={handleGoogleSignIn}
-                disabled={loading}
-                className="w-full flex items-center justify-center space-x-3 py-3 px-4 border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {loading ? (
-                  <LoadingSpinner size="sm" />
-                ) : (
-                  <Chrome className="w-5 h-5 text-gray-500" />
-                )}
-                <span className="text-gray-700 font-medium">Continue with Google</span>
-              </button>
-
-              <button
-                onClick={handleGitHubSignIn}
-                disabled={loading}
-                className="w-full flex items-center justify-center space-x-3 py-3 px-4 bg-gray-900 text-white rounded-lg hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {loading ? (
-                  <LoadingSpinner size="sm" className="text-white" />
-                ) : (
-                  <Github className="w-5 h-5" />
-                )}
-                <span className="font-medium">Continue with GitHub</span>
-              </button>
+            <div className="space-y-6">
+              {/* Magic Link Form */}
+              <form onSubmit={handleMagicLinkSignIn} className="space-y-4">
+                <div>
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                    Email address
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Mail className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <input
+                      id="email"
+                      name="email"
+                      type="email"
+                      autoComplete="email"
+                      required
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Enter your email"
+                    />
+                  </div>
+                </div>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full flex items-center justify-center space-x-2 py-3 px-4 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loading ? (
+                    <LoadingSpinner size="sm" className="text-white" />
+                  ) : (
+                    <Mail className="w-5 h-5" />
+                  )}
+                  <span>Send Magic Link</span>
+                </button>
+              </form>
             </div>
 
             <div className="mt-8 text-center">

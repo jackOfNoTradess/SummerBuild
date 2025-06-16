@@ -63,12 +63,32 @@ export interface Database {
           updated_at?: string;
         };
       };
+      participates: {
+        Row: {
+          id: string;
+          user_id: string;
+          event_id: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          event_id: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          event_id?: string;
+          updated_at?: string;
+        };
+      };
     };
   };
 }
 
 export type User = Database['public']['Tables']['users']['Row'];
 export type Event = Database['public']['Tables']['events']['Row'];
-
-// Legacy type aliases for backward compatibility
-export type Profile = User;
+export type Participation = Database['public']['Tables']['participates']['Row'];

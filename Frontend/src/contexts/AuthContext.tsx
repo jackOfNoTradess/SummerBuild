@@ -1,16 +1,17 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { User, AuthError } from '@supabase/supabase-js';
+import type { User, AuthError } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
-import { Profile } from '../types/database';
+import type { User as DatabaseUser } from '../types/database';
 
 interface AuthContextType {
   user: User | null;
-  profile: Profile | null;
+  profile: DatabaseUser | null;
   loading: boolean;
   signInWithGoogle: () => Promise<void>;
   signInWithGitHub: () => Promise<void>;
+  signInWithMagicLink: (email: string) => Promise<void>;
   signOut: () => Promise<void>;
-  updateProfile: (updates: Partial<Profile>) => Promise<void>;
+  updateProfile: (updates: Partial<DatabaseUser>) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -25,7 +26,7 @@ export function useAuth() {
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<Profile | null>(null);
+  const [profile, setProfile] = useState<DatabaseUser | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -58,7 +59,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const fetchProfile = async (userId: string) => {
     try {
       const { data, error } = await supabase
-        .from('profiles')
+        .from('users')
         .select('*')
         .eq('id', userId)
         .single();
@@ -70,19 +71,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (data) {
         setProfile(data);
       } else {
-        // Create profile if it doesn't exist
+        // Create user profile if it doesn't exist
         const user = await supabase.auth.getUser();
         if (user.data.user) {
           const newProfile = {
             id: user.data.user.id,
-            email: user.data.user.email!,
-            full_name: user.data.user.user_metadata.full_name || user.data.user.email!,
-            avatar_url: user.data.user.user_metadata.avatar_url,
-            role: 'student' as const,
+            role: 'USER' as const,
+            gender: 'OTHERS' as const,
           };
 
           const { data: createdProfile, error: createError } = await supabase
-            .from('profiles')
+            .from('users')
             .insert(newProfile)
             .select()
             .single();
@@ -118,16 +117,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (error) throw error;
   };
 
+  const signInWithMagicLink = async (email: string) => {
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        shouldCreateUser: true,
+        emailRedirectTo: `${window.location.origin}/dashboard`,
+      },
+    });
+    if (error) throw error;
+  };
+
   const signOut = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
   };
 
-  const updateProfile = async (updates: Partial<Profile>) => {
+  const updateProfile = async (updates: Partial<DatabaseUser>) => {
     if (!user) throw new Error('No user logged in');
 
     const { data, error } = await supabase
-      .from('profiles')
+      .from('users')
       .update({ ...updates, updated_at: new Date().toISOString() })
       .eq('id', user.id)
       .select()
@@ -143,6 +153,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     loading,
     signInWithGoogle,
     signInWithGitHub,
+    signInWithMagicLink,
     signOut,
     updateProfile,
   };

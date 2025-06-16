@@ -5,7 +5,7 @@ import { LoadingSpinner } from '../ui/LoadingSpinner';
 
 interface AuthGuardProps {
   children: React.ReactNode;
-  requiredRole?: 'student' | 'organizer' | 'admin';
+  requiredRole?: 'USER' | 'ORGANIZER' | 'ADMIN';
   requireAuth?: boolean;
 }
 
@@ -33,7 +33,7 @@ export function AuthGuard({
     return <Navigate to="/dashboard" replace />;
   }
 
-  if (requiredRole && profile?.role !== requiredRole && profile?.role !== 'admin') {
+  if (requiredRole && profile?.role !== requiredRole && profile?.role !== 'ADMIN') {
     return <Navigate to="/dashboard" replace />;
   }
 

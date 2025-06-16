@@ -98,7 +98,7 @@ function App() {
           <Route
             path="/organizer/dashboard"
             element={
-              <AuthGuard requiredRole="organizer">
+              <AuthGuard requiredRole="ORGANIZER">
                 <Layout>
                   <OrganizerDashboard />
                 </Layout>
@@ -109,7 +109,7 @@ function App() {
           <Route
             path="/organizer/create-event"
             element={
-              <AuthGuard requiredRole="organizer">
+              <AuthGuard requiredRole="ORGANIZER">
                 <Layout>
                   <CreateEvent />
                 </Layout>
@@ -120,7 +120,7 @@ function App() {
           <Route
             path="/organizer/events/:id/edit"
             element={
-              <AuthGuard requiredRole="organizer">
+              <AuthGuard requiredRole="ORGANIZER">
                 <Layout>
                   <EditEvent />
                 </Layout>
@@ -131,7 +131,7 @@ function App() {
           <Route
             path="/organizer/events/:id/manage"
             element={
-              <AuthGuard requiredRole="organizer">
+              <AuthGuard requiredRole="ORGANIZER">
                 <Layout>
                   <EventManagement />
                 </Layout>
@@ -143,7 +143,7 @@ function App() {
           <Route
             path="/admin"
             element={
-              <AuthGuard requiredRole="admin">
+              <AuthGuard requiredRole="ADMIN">
                 <Layout>
                   <AdminDashboard />
                 </Layout>
@@ -154,7 +154,7 @@ function App() {
           <Route
             path="/admin/users"
             element={
-              <AuthGuard requiredRole="admin">
+              <AuthGuard requiredRole="ADMIN">
                 <Layout>
                   <UserManagement />
                 </Layout>
@@ -165,7 +165,7 @@ function App() {
           <Route
             path="/admin/events"
             element={
-              <AuthGuard requiredRole="admin">
+              <AuthGuard requiredRole="ADMIN">
                 <Layout>
                   <EventsManagement />
                 </Layout>
