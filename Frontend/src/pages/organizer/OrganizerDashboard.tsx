@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, Calendar, Users, TrendingUp, Edit, Trash2, Settings, Eye, BarChart3 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
-import { Event } from '../../types/database';
+import type { Event } from '../../types/database';
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
 
 export function OrganizerDashboard() {
@@ -31,8 +31,8 @@ export function OrganizerDashboard() {
       const { data, error } = await supabase
         .from('events')
         .select('*')
-        .eq('organizer_id', user!.id)
-        .order('event_date', { ascending: false });
+        .eq('host_id', user!.id)
+        .order('start_time', { ascending: false });
 
       if (error) throw error;
 
@@ -40,9 +40,20 @@ export function OrganizerDashboard() {
       
       // Calculate stats
       const now = new Date();
-      const totalRegistrations = data?.reduce((sum, event) => sum + event.registered_count, 0) || 0;
-      const upcomingEvents = data?.filter(event => new Date(event.event_date) >= now).length || 0;
-      const pastEvents = data?.filter(event => new Date(event.event_date) < now).length || 0;
+      
+      // Get registration counts for all events
+      let totalRegistrations = 0;
+      if (data && data.length > 0) {
+        const eventIds = data.map(event => event.id);
+        const { data: participations } = await supabase
+          .from('participates')
+          .select('event_id')
+          .in('event_id', eventIds);
+        totalRegistrations = participations?.length || 0;
+      }
+      
+      const upcomingEvents = data?.filter(event => new Date(event.start_time) >= now).length || 0;
+      const pastEvents = data?.filter(event => new Date(event.start_time) < now).length || 0;
 
       setStats({
         totalEvents: data?.length || 0,
@@ -62,13 +73,13 @@ export function OrganizerDashboard() {
     if (!confirmed) return;
 
     try {
-      // First delete all bookings for this event
-      const { error: bookingsError } = await supabase
-        .from('bookings')
+      // First delete all participations for this event
+      const { error: participationsError } = await supabase
+        .from('participates')
         .delete()
         .eq('event_id', eventId);
 
-      if (bookingsError) throw bookingsError;
+      if (participationsError) throw participationsError;
 
       // Then delete the event
       const { error: eventError } = await supabase
@@ -184,8 +195,8 @@ export function OrganizerDashboard() {
         ) : (
           <div className="divide-y divide-gray-200">
             {events.map(event => {
-              const isUpcoming = new Date(event.event_date) >= new Date();
-              const fillPercentage = (event.registered_count / event.capacity) * 100;
+              const isUpcoming = new Date(event.start_time) >= new Date();
+              const fillPercentage = event.capacity ? 0 : 0; // Will be calculated separately
               
               return (
                 <div key={event.id} className="p-6 hover:bg-gray-50 transition-colors duration-200">
@@ -207,11 +218,11 @@ export function OrganizerDashboard() {
                       <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500">
                         <div className="flex items-center space-x-1">
                           <Calendar className="w-4 h-4" />
-                          <span>{format(parseISO(event.event_date), 'MMM d, yyyy')}</span>
+                          <span>{format(parseISO(event.start_time), 'MMM d, yyyy')}</span>
                         </div>
                         <div className="flex items-center space-x-1">
                           <Users className="w-4 h-4" />
-                          <span>{event.registered_count} / {event.capacity} registered</span>
+                          <span>0 / {event.capacity || 'Unlimited'} registered</span>
                         </div>
                       </div>
                       

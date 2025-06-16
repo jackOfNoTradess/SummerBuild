@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Calendar, Menu, X, User, LogOut, Settings, Plus } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
@@ -23,11 +23,11 @@ export function Header() {
     { name: 'My Calendar', href: '/calendar' },
   ];
 
-  if (profile?.role === 'organizer' || profile?.role === 'admin') {
+  if (profile?.role === 'ORGANIZER' || profile?.role === 'ADMIN') {
     navigation.push({ name: 'My Events', href: '/organizer/dashboard' });
   }
 
-  if (profile?.role === 'admin') {
+  if (profile?.role === 'ADMIN') {
     navigation.push({ name: 'Admin Panel', href: '/admin' });
   }
 
@@ -60,7 +60,7 @@ export function Header() {
 
           {/* Desktop Actions */}
           <div className="hidden md:flex items-center space-x-4">
-            {(profile?.role === 'organizer' || profile?.role === 'admin') && (
+            {(profile?.role === 'ORGANIZER' || profile?.role === 'ADMIN') && (
               <Link
                 to="/organizer/create-event"
                 className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors duration-200 flex items-center space-x-2"
@@ -75,18 +75,10 @@ export function Header() {
                 onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
                 className="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-100 transition-colors duration-200"
               >
-                {profile?.avatar_url ? (
-                  <img
-                    src={profile.avatar_url}
-                    alt={profile.full_name}
-                    className="w-8 h-8 rounded-full"
-                  />
-                ) : (
-                  <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
-                    <User className="w-5 h-5 text-gray-600" />
-                  </div>
-                )}
-                <span className="text-sm font-medium text-gray-700">{profile?.full_name}</span>
+                <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
+                  <User className="w-5 h-5 text-gray-600" />
+                </div>
+                <span className="text-sm font-medium text-gray-700">{user?.email}</span>
               </button>
 
               {isProfileMenuOpen && (
@@ -143,7 +135,7 @@ export function Header() {
                   {item.name}
                 </Link>
               ))}
-              {(profile?.role === 'organizer' || profile?.role === 'admin') && (
+              {(profile?.role === 'ORGANIZER' || profile?.role === 'ADMIN') && (
                 <Link
                   to="/organizer/create-event"
                   className="block px-3 py-2 text-base font-medium text-blue-600 hover:bg-gray-50 rounded-md"
@@ -155,20 +147,12 @@ export function Header() {
             </div>
             <div className="border-t border-gray-200 pt-4 pb-3">
               <div className="flex items-center px-3">
-                {profile?.avatar_url ? (
-                  <img
-                    src={profile.avatar_url}
-                    alt={profile.full_name}
-                    className="w-10 h-10 rounded-full"
-                  />
-                ) : (
-                  <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center">
-                    <User className="w-6 h-6 text-gray-600" />
-                  </div>
-                )}
+                <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center">
+                  <User className="w-6 h-6 text-gray-600" />
+                </div>
                 <div className="ml-3">
-                  <div className="text-base font-medium text-gray-800">{profile?.full_name}</div>
-                  <div className="text-sm font-medium text-gray-500">{profile?.email}</div>
+                  <div className="text-base font-medium text-gray-800">{user?.email}</div>
+                  <div className="text-sm font-medium text-gray-500">Role: {profile?.role}</div>
                 </div>
               </div>
               <div className="mt-3 space-y-1">

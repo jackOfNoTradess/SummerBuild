@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Calendar, MapPin, Users, Clock, Tag, Image, FileText, Save } from 'lucide-react';
+import { ArrowLeft, Calendar, Users, Clock, FileText, Save } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
-import { Event } from '../../types/database';
+import type { Event } from '../../types/database';
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
 
 const EVENT_TAGS = ['Academic', 'Social', 'Sports', 'Career', 'Workshop', 'Cultural', 'Technology', 'Arts'];
@@ -11,14 +11,10 @@ const EVENT_TAGS = ['Academic', 'Social', 'Sports', 'Career', 'Workshop', 'Cultu
 interface EventFormData {
   title: string;
   description: string;
-  event_date: string;
-  event_time: string;
-  location: string;
+  start_time: string;
+  end_time: string;
   capacity: number;
-  image_url: string;
-  tags: string[];
-  registration_deadline: string;
-  additional_details: string;
+  tag: string[];
 }
 
 export function EditEvent() {
@@ -28,17 +24,14 @@ export function EditEvent() {
   const [event, setEvent] = useState<Event | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [currentRegistrations, setCurrentRegistrations] = useState(0);
   const [formData, setFormData] = useState<EventFormData>({
     title: '',
     description: '',
-    event_date: '',
-    event_time: '',
-    location: '',
+    start_time: '',
+    end_time: '',
     capacity: 50,
-    image_url: '',
-    tags: [],
-    registration_deadline: '',
-    additional_details: '',
+    tag: [],
   });
 
   useEffect(() => {
@@ -55,7 +48,7 @@ export function EditEvent() {
         .from('events')
         .select('*')
         .eq('id', id)
-        .eq('organizer_id', user!.id)
+        .eq('host_id', user!.id)
         .single();
 
       if (error) throw error;
@@ -63,16 +56,20 @@ export function EditEvent() {
       setEvent(data);
       setFormData({
         title: data.title,
-        description: data.description,
-        event_date: data.event_date,
-        event_time: data.event_time,
-        location: data.location,
-        capacity: data.capacity,
-        image_url: data.image_url || '',
-        tags: data.tags,
-        registration_deadline: data.registration_deadline,
-        additional_details: data.additional_details || '',
+        description: data.description || '',
+        start_time: data.start_time,
+        end_time: data.end_time,
+        capacity: data.capacity || 50,
+        tag: data.tag || [],
       });
+
+      // Get current registration count
+      const { data: participations } = await supabase
+        .from('participates')
+        .select('id')
+        .eq('event_id', data.id);
+      
+      setCurrentRegistrations(participations?.length || 0);
     } catch (error) {
       console.error('Error fetching event:', error);
       navigate('/organizer/dashboard');
@@ -92,9 +89,9 @@ export function EditEvent() {
   const handleTagToggle = (tag: string) => {
     setFormData(prev => ({
       ...prev,
-      tags: prev.tags.includes(tag)
-        ? prev.tags.filter(t => t !== tag)
-        : [...prev.tags, tag]
+      tag: prev.tag.includes(tag)
+        ? prev.tag.filter((t: string) => t !== tag)
+        : [...prev.tag, tag]
     }));
   };
 
@@ -103,16 +100,15 @@ export function EditEvent() {
     if (!event) return;
 
     // Validation
-    if (!formData.title || !formData.description || !formData.event_date || 
-        !formData.event_time || !formData.location || !formData.registration_deadline ||
-        formData.capacity <= 0 || formData.tags.length === 0) {
+    if (!formData.title || !formData.description || !formData.start_time || 
+        !formData.end_time || formData.capacity <= 0 || formData.tag.length === 0) {
       alert('Please fill in all required fields.');
       return;
     }
 
     // Check if capacity is being reduced below current registrations
-    if (formData.capacity < event.registered_count) {
-      alert(`Cannot reduce capacity below current registrations (${event.registered_count})`);
+    if (formData.capacity < currentRegistrations) {
+      alert(`Cannot reduce capacity below current registrations (${currentRegistrations})`);
       return;
     }
 
@@ -217,64 +213,46 @@ export function EditEvent() {
             </div>
 
             <div>
-              <label htmlFor="event_date" className="block text-sm font-medium text-gray-700 mb-2">
-                Event Date *
+              <label htmlFor="start_time" className="block text-sm font-medium text-gray-700 mb-2">
+                Start Time *
               </label>
               <div className="relative">
                 <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <input
-                  type="date"
-                  id="event_date"
-                  name="event_date"
+                  type="datetime-local"
+                  id="start_time"
+                  name="start_time"
                   required
-                  value={formData.event_date}
+                  value={formData.start_time.slice(0, 16)}
                   onChange={handleInputChange}
-                  min={new Date().toISOString().split('T')[0]}
+                  min={new Date().toISOString().slice(0, 16)}
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
             </div>
 
             <div>
-              <label htmlFor="event_time" className="block text-sm font-medium text-gray-700 mb-2">
-                Event Time *
+              <label htmlFor="end_time" className="block text-sm font-medium text-gray-700 mb-2">
+                End Time *
               </label>
               <div className="relative">
                 <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <input
-                  type="time"
-                  id="event_time"
-                  name="event_time"
+                  type="datetime-local"
+                  id="end_time"
+                  name="end_time"
                   required
-                  value={formData.event_time}
+                  value={formData.end_time.slice(0, 16)}
                   onChange={handleInputChange}
+                  min={formData.start_time.slice(0, 16)}
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
             </div>
 
-            <div>
-              <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-2">
-                Location *
-              </label>
-              <div className="relative">
-                <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                <input
-                  type="text"
-                  id="location"
-                  name="location"
-                  required
-                  value={formData.location}
-                  onChange={handleInputChange}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Event location"
-                />
-              </div>
-            </div>
-
-            <div>
+            <div className="lg:col-span-2">
               <label htmlFor="capacity" className="block text-sm font-medium text-gray-700 mb-2">
-                Capacity * (Current: {event.registered_count} registered)
+                Capacity * (Current: {currentRegistrations} registered)
               </label>
               <div className="relative">
                 <Users className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -283,7 +261,7 @@ export function EditEvent() {
                   id="capacity"
                   name="capacity"
                   required
-                  min={event.registered_count}
+                  min={currentRegistrations}
                   value={formData.capacity}
                   onChange={handleInputChange}
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -291,46 +269,8 @@ export function EditEvent() {
                 />
               </div>
               <p className="text-sm text-gray-500 mt-1">
-                Cannot be reduced below current registrations ({event.registered_count})
+                Cannot be reduced below current registrations ({currentRegistrations})
               </p>
-            </div>
-
-            <div>
-              <label htmlFor="registration_deadline" className="block text-sm font-medium text-gray-700 mb-2">
-                Registration Deadline *
-              </label>
-              <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                <input
-                  type="date"
-                  id="registration_deadline"
-                  name="registration_deadline"
-                  required
-                  value={formData.registration_deadline}
-                  onChange={handleInputChange}
-                  min={new Date().toISOString().split('T')[0]}
-                  max={formData.event_date}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label htmlFor="image_url" className="block text-sm font-medium text-gray-700 mb-2">
-                Event Image URL
-              </label>
-              <div className="relative">
-                <Image className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                <input
-                  type="url"
-                  id="image_url"
-                  name="image_url"
-                  value={formData.image_url}
-                  onChange={handleInputChange}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="https://example.com/image.jpg"
-                />
-              </div>
             </div>
           </div>
         </div>
@@ -347,7 +287,7 @@ export function EditEvent() {
                 type="button"
                 onClick={() => handleTagToggle(tag)}
                 className={`px-4 py-2 rounded-full text-sm font-medium transition-colors duration-200 ${
-                  formData.tags.includes(tag)
+                  formData.tag.includes(tag)
                     ? 'bg-blue-600 text-white'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
@@ -355,26 +295,6 @@ export function EditEvent() {
                 {tag}
               </button>
             ))}
-          </div>
-        </div>
-
-        {/* Additional Details */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
-          <h2 className="text-xl font-semibold text-gray-900 mb-6">Additional Details</h2>
-          
-          <div>
-            <label htmlFor="additional_details" className="block text-sm font-medium text-gray-700 mb-2">
-              Additional Information
-            </label>
-            <textarea
-              id="additional_details"
-              name="additional_details"
-              rows={6}
-              value={formData.additional_details}
-              onChange={handleInputChange}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Any additional details, requirements, or instructions for attendees..."
-            />
           </div>
         </div>
 
@@ -393,7 +313,7 @@ export function EditEvent() {
           >
             {saving ? (
               <>
-                <LoadingSpinner size="sm\" className="text-white" />
+                <LoadingSpinner size="sm" className="text-white" />
                 <span>Saving...</span>
               </>
             ) : (

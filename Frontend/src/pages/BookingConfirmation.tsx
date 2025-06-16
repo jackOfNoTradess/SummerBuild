@@ -1,66 +1,66 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { CheckCircle, Calendar, MapPin, Clock, User, Download, Mail, QrCode } from 'lucide-react';
+import { CheckCircle, Calendar, Clock, User as UserIcon, Download, Mail, QrCode } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import QRCode from 'qrcode';
 import { supabase } from '../lib/supabase';
-import { Booking, Event, Profile } from '../types/database';
+import type { Event, User, Participation } from '../types/database';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 
 export function BookingConfirmation() {
-  const { bookingRef } = useParams<{ bookingRef: string }>();
-  const [booking, setBooking] = useState<Booking | null>(null);
+  const { participationId } = useParams<{ participationId: string }>();
+  const [participation, setParticipation] = useState<Participation | null>(null);
   const [event, setEvent] = useState<Event | null>(null);
-  const [profile, setProfile] = useState<Profile | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [qrCodeUrl, setQrCodeUrl] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (bookingRef) {
-      fetchBookingDetails();
+    if (participationId) {
+      fetchParticipationDetails();
     }
-  }, [bookingRef]);
+  }, [participationId]);
 
-  const fetchBookingDetails = async () => {
+  const fetchParticipationDetails = async () => {
     try {
       setLoading(true);
       
-      // Fetch booking details
-      const { data: bookingData, error: bookingError } = await supabase
-        .from('bookings')
+      // Fetch participation details
+      const { data: participationData, error: participationError } = await supabase
+        .from('participates')
         .select('*')
-        .eq('booking_reference', bookingRef)
+        .eq('id', participationId)
         .single();
 
-      if (bookingError) throw bookingError;
-      setBooking(bookingData);
+      if (participationError) throw participationError;
+      setParticipation(participationData);
 
       // Fetch event details
       const { data: eventData, error: eventError } = await supabase
         .from('events')
         .select('*')
-        .eq('id', bookingData.event_id)
+        .eq('id', participationData.event_id)
         .single();
 
       if (eventError) throw eventError;
       setEvent(eventData);
 
-      // Fetch user profile
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
+      // Fetch user details
+      const { data: userData, error: userError } = await supabase
+        .from('users')
         .select('*')
-        .eq('id', bookingData.user_id)
+        .eq('id', participationData.user_id)
         .single();
 
-      if (profileError) throw profileError;
-      setProfile(profileData);
+      if (userError) throw userError;
+      setUser(userData);
 
       // Generate QR code
       const qrData = JSON.stringify({
-        bookingRef: bookingData.booking_reference,
-        eventId: bookingData.event_id,
-        userId: bookingData.user_id,
+        participationId: participationData.id,
+        eventId: participationData.event_id,
+        userId: participationData.user_id,
         eventTitle: eventData.title,
       });
       
@@ -75,8 +75,8 @@ export function BookingConfirmation() {
       setQrCodeUrl(qrCodeDataUrl);
 
     } catch (error: any) {
-      console.error('Error fetching booking details:', error);
-      setError('Booking not found or invalid booking reference.');
+      console.error('Error fetching participation details:', error);
+      setError('Participation not found or invalid participation ID.');
     } finally {
       setLoading(false);
     }
@@ -86,7 +86,7 @@ export function BookingConfirmation() {
     if (!qrCodeUrl) return;
     
     const link = document.createElement('a');
-    link.download = `event-ticket-${bookingRef}.png`;
+    link.download = `event-ticket-${participationId}.png`;
     link.href = qrCodeUrl;
     link.click();
   };
@@ -99,12 +99,12 @@ export function BookingConfirmation() {
     );
   }
 
-  if (error || !booking || !event || !profile) {
+  if (error || !participation || !event || !user) {
     return (
       <div className="max-w-2xl mx-auto text-center py-12">
         <div className="bg-red-50 border border-red-200 rounded-lg p-8">
-          <h1 className="text-2xl font-bold text-red-900 mb-4">Booking Not Found</h1>
-          <p className="text-red-700 mb-6">{error || 'The booking reference you provided is invalid or has expired.'}</p>
+          <h1 className="text-2xl font-bold text-red-900 mb-4">Registration Not Found</h1>
+          <p className="text-red-700 mb-6">{error || 'The participation ID you provided is invalid or has expired.'}</p>
           <Link
             to="/dashboard"
             className="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors duration-200"
@@ -123,19 +123,19 @@ export function BookingConfirmation() {
         <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
           <CheckCircle className="w-8 h-8 text-green-600" />
         </div>
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Booking Confirmed!</h1>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">Registration Confirmed!</h1>
         <p className="text-gray-600">Your event registration has been successfully processed.</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Booking Details */}
+        {/* Registration Details */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
-          <h2 className="text-xl font-semibold text-gray-900 mb-6">Booking Details</h2>
+          <h2 className="text-xl font-semibold text-gray-900 mb-6">Registration Details</h2>
           
           <div className="space-y-4">
             <div className="flex items-center justify-between py-3 border-b border-gray-100">
-              <span className="text-gray-600">Booking Reference</span>
-              <span className="font-mono font-semibold text-gray-900">{booking.booking_reference}</span>
+              <span className="text-gray-600">Registration ID</span>
+              <span className="font-mono font-semibold text-gray-900">{participation.id}</span>
             </div>
             
             <div className="flex items-center justify-between py-3 border-b border-gray-100">
@@ -146,14 +146,9 @@ export function BookingConfirmation() {
             </div>
             
             <div className="flex items-center justify-between py-3 border-b border-gray-100">
-              <span className="text-gray-600">Tickets</span>
-              <span className="font-semibold text-gray-900">{booking.tickets_quantity}</span>
-            </div>
-            
-            <div className="flex items-center justify-between py-3 border-b border-gray-100">
-              <span className="text-gray-600">Booked On</span>
+              <span className="text-gray-600">Registered On</span>
               <span className="font-semibold text-gray-900">
-                {format(parseISO(booking.created_at), 'MMM d, yyyy')}
+                {format(parseISO(participation.created_at), 'MMM d, yyyy')}
               </span>
             </div>
           </div>
@@ -164,11 +159,11 @@ export function BookingConfirmation() {
             <div className="bg-gray-50 rounded-lg p-4">
               <div className="flex items-center space-x-3">
                 <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                  <User className="w-5 h-5 text-blue-600" />
+                  <UserIcon className="w-5 h-5 text-blue-600" />
                 </div>
                 <div>
-                  <div className="font-medium text-gray-900">{profile.full_name}</div>
-                  <div className="text-sm text-gray-500">{profile.email}</div>
+                  <div className="font-medium text-gray-900">User ID: {user.id}</div>
+                  <div className="text-sm text-gray-500">Role: {user.role}</div>
                 </div>
               </div>
             </div>
@@ -189,20 +184,32 @@ export function BookingConfirmation() {
               <div className="flex items-start space-x-3">
                 <Calendar className="w-5 h-5 text-blue-600 mt-1" />
                 <div>
-                  <div className="font-medium text-gray-900">
-                    {format(parseISO(event.event_date), 'EEEE, MMMM d, yyyy')}
+                  <div className="font-medium text-gray-900">Start Time</div>
+                  <div className="text-sm text-gray-500">
+                    {format(parseISO(event.start_time), 'EEEE, MMMM d, yyyy \'at\' h:mm a')}
                   </div>
-                  <div className="text-sm text-gray-500">{event.event_time}</div>
                 </div>
               </div>
 
               <div className="flex items-start space-x-3">
-                <MapPin className="w-5 h-5 text-blue-600 mt-1" />
+                <Clock className="w-5 h-5 text-blue-600 mt-1" />
                 <div>
-                  <div className="font-medium text-gray-900">Location</div>
-                  <div className="text-sm text-gray-500">{event.location}</div>
+                  <div className="font-medium text-gray-900">End Time</div>
+                  <div className="text-sm text-gray-500">
+                    {format(parseISO(event.end_time), 'EEEE, MMMM d, yyyy \'at\' h:mm a')}
+                  </div>
                 </div>
               </div>
+
+              {event.capacity && (
+                <div className="flex items-start space-x-3">
+                  <UserIcon className="w-5 h-5 text-blue-600 mt-1" />
+                  <div>
+                    <div className="font-medium text-gray-900">Capacity</div>
+                    <div className="text-sm text-gray-500">{event.capacity} attendees</div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -247,7 +254,7 @@ export function BookingConfirmation() {
         <div className="space-y-3 text-blue-800">
           <div className="flex items-center space-x-2">
             <Mail className="w-5 h-5" />
-            <span>A confirmation email has been sent to {profile.email}</span>
+            <span>Keep this confirmation for your records</span>
           </div>
           <div className="flex items-center space-x-2">
             <Calendar className="w-5 h-5" />

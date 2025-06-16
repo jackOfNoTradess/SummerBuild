@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Filter } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO, addMonths, subMonths, startOfWeek, endOfWeek } from 'date-fns';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { Event } from '../types/database';
+import type { Event } from '../types/database';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 import { Link } from 'react-router-dom';
 
@@ -37,24 +37,23 @@ export function Calendar() {
     try {
       setLoading(true);
       
-      // Get user's bookings
-      const { data: bookings, error: bookingsError } = await supabase
-        .from('bookings')
+      // Get user's participations
+      const { data: participations, error: participationsError } = await supabase
+        .from('participates')
         .select('event_id')
-        .eq('user_id', user!.id)
-        .eq('status', 'confirmed');
+        .eq('user_id', user!.id);
 
-      if (bookingsError) throw bookingsError;
+      if (participationsError) throw participationsError;
 
-      if (bookings && bookings.length > 0) {
-        const eventIds = bookings.map(b => b.event_id);
+      if (participations && participations.length > 0) {
+        const eventIds = participations.map(p => p.event_id);
         
-        // Get events for those bookings
+        // Get events for those participations
         const { data: eventsData, error: eventsError } = await supabase
           .from('events')
           .select('*')
           .in('id', eventIds)
-          .order('event_date', { ascending: true });
+          .order('start_time', { ascending: true });
 
         if (eventsError) throw eventsError;
         setEvents(eventsData || []);
@@ -69,7 +68,7 @@ export function Calendar() {
   };
 
   const filteredEvents = events.filter(event => 
-    selectedTags.length === 0 || selectedTags.some(tag => event.tags.includes(tag))
+    selectedTags.length === 0 || selectedTags.some(tag => event.tag?.includes(tag))
   );
 
   const toggleTag = (tag: string) => {
@@ -82,7 +81,7 @@ export function Calendar() {
 
   const getEventsForDate = (date: Date) => {
     return filteredEvents.filter(event => 
-      isSameDay(parseISO(event.event_date), date)
+      isSameDay(parseISO(event.start_time), date)
     );
   };
 
@@ -235,8 +234,9 @@ export function Calendar() {
                   
                   <div className="space-y-1">
                     {dayEvents.slice(0, 3).map(event => {
-                      const primaryTag = event.tags[0];
-                      const tagColor = TAG_COLORS[primaryTag] || 'bg-gray-500';
+                      const primaryTag = event.tag?.[0];
+                      const tagColor = primaryTag ? TAG_COLORS[primaryTag] || 'bg-gray-500' : 'bg-gray-500';
+                      const eventTime = format(parseISO(event.start_time), 'HH:mm');
                       
                       return (
                         <Link
@@ -246,7 +246,7 @@ export function Calendar() {
                         >
                           <div className={`${tagColor} text-white text-xs p-1 rounded truncate hover:opacity-80 transition-opacity duration-200`}>
                             <div className="font-medium">{event.title}</div>
-                            <div className="opacity-90">{event.event_time}</div>
+                            <div className="opacity-90">{eventTime}</div>
                           </div>
                         </Link>
                       );

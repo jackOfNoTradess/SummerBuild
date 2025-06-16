@@ -1,13 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Search, Filter, Calendar, Eye, Edit, Trash2, Users } from 'lucide-react';
+import { ArrowLeft, Search, Filter, Calendar, Eye, Trash2, Users } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { supabase } from '../../lib/supabase';
-import { Event } from '../../types/database';
+import type { Event } from '../../types/database';
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
 
+interface EventWithParticipationCount extends Event {
+  participationCount: number;
+}
+
 export function EventsManagement() {
-  const [events, setEvents] = useState<Event[]>([]);
+  const [events, setEvents] = useState<EventWithParticipationCount[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
@@ -26,7 +30,23 @@ export function EventsManagement() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setEvents(data || []);
+
+      // Fetch participation counts for each event
+      const eventsWithCounts = await Promise.all(
+        (data || []).map(async (event) => {
+          const { count } = await supabase
+            .from('participates')
+            .select('id', { count: 'exact' })
+            .eq('event_id', event.id);
+          
+          return {
+            ...event,
+            participationCount: count || 0
+          };
+        })
+      );
+
+      setEvents(eventsWithCounts);
     } catch (error) {
       console.error('Error fetching events:', error);
     } finally {
@@ -39,13 +59,13 @@ export function EventsManagement() {
     if (!confirmed) return;
 
     try {
-      // First delete all bookings for this event
-      const { error: bookingsError } = await supabase
-        .from('bookings')
+      // First delete all participations for this event
+      const { error: participationsError } = await supabase
+        .from('participates')
         .delete()
         .eq('event_id', eventId);
 
-      if (bookingsError) throw bookingsError;
+      if (participationsError) throw participationsError;
 
       // Then delete the event
       const { error: eventError } = await supabase
@@ -64,27 +84,26 @@ export function EventsManagement() {
 
   const filteredEvents = events.filter(event => {
     const matchesSearch = event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         event.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         event.location.toLowerCase().includes(searchQuery.toLowerCase());
+                         (event.description && event.description.toLowerCase().includes(searchQuery.toLowerCase()));
     
     const now = new Date();
-    const eventDate = new Date(event.event_date);
+    const eventDate = new Date(event.start_time);
     const isUpcoming = eventDate >= now;
     const isPast = eventDate < now;
     
     let matchesStatus = true;
     if (selectedStatus === 'upcoming') matchesStatus = isUpcoming;
     else if (selectedStatus === 'past') matchesStatus = isPast;
-    else if (selectedStatus === 'full') matchesStatus = event.registered_count >= event.capacity;
+    else if (selectedStatus === 'full') matchesStatus = event.capacity ? event.participationCount >= event.capacity : false;
     
     return matchesSearch && matchesStatus;
   });
 
-  const getEventStatusBadge = (event: Event) => {
+  const getEventStatusBadge = (event: EventWithParticipationCount) => {
     const now = new Date();
-    const eventDate = new Date(event.event_date);
+    const eventDate = new Date(event.start_time);
     const isUpcoming = eventDate >= now;
-    const isFull = event.registered_count >= event.capacity;
+    const isFull = event.capacity ? event.participationCount >= event.capacity : false;
     
     if (isFull) {
       return <span className="bg-red-100 text-red-800 text-xs font-medium px-2 py-1 rounded-full">Full</span>;
@@ -178,9 +197,6 @@ export function EventsManagement() {
                     Date & Time
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Location
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Registrations
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -197,44 +213,49 @@ export function EventsManagement() {
                     <td className="px-6 py-4">
                       <div>
                         <div className="text-sm font-medium text-gray-900 line-clamp-1">{event.title}</div>
-                        <div className="text-sm text-gray-500 line-clamp-2">{event.description}</div>
-                        <div className="flex flex-wrap gap-1 mt-2">
-                          {event.tags.slice(0, 2).map(tag => (
-                            <span
-                              key={tag}
-                              className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
-                            >
-                              {tag}
-                            </span>
-                          ))}
-                          {event.tags.length > 2 && (
-                            <span className="text-xs text-gray-500">+{event.tags.length - 2} more</span>
-                          )}
-                        </div>
+                        {event.description && (
+                          <div className="text-sm text-gray-500 line-clamp-2">{event.description}</div>
+                        )}
+                        {event.tag && event.tag.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-2">
+                            {event.tag.slice(0, 2).map((tag, index) => (
+                              <span
+                                key={index}
+                                className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+                              >
+                                {tag}
+                              </span>
+                            ))}
+                            {event.tag.length > 2 && (
+                              <span className="text-xs text-gray-500">+{event.tag.length - 2} more</span>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">
-                        {format(parseISO(event.event_date), 'MMM d, yyyy')}
+                        {format(parseISO(event.start_time), 'MMM d, yyyy')}
                       </div>
-                      <div className="text-sm text-gray-500">{event.event_time}</div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900 line-clamp-2">{event.location}</div>
+                      <div className="text-sm text-gray-500">
+                        {format(parseISO(event.start_time), 'h:mm a')} - {format(parseISO(event.end_time), 'h:mm a')}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center space-x-2">
                         <Users className="w-4 h-4 text-gray-400" />
                         <span className="text-sm text-gray-900">
-                          {event.registered_count} / {event.capacity}
+                          {event.participationCount} / {event.capacity || 'Unlimited'}
                         </span>
                       </div>
-                      <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
-                        <div
-                          className="bg-blue-600 h-1.5 rounded-full"
-                          style={{ width: `${(event.registered_count / event.capacity) * 100}%` }}
-                        ></div>
-                      </div>
+                      {event.capacity && (
+                        <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
+                          <div
+                            className="bg-blue-600 h-1.5 rounded-full"
+                            style={{ width: `${Math.min((event.participationCount / event.capacity) * 100, 100)}%` }}
+                          ></div>
+                        </div>
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {getEventStatusBadge(event)}

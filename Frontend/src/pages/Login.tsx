@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Calendar, Chrome, Github, AlertCircle, Mail, Check } from 'lucide-react';
+import { Calendar, AlertCircle, Mail, Check } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 

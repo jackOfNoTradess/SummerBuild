@@ -1,21 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Users, Download, Mail, QrCode, Calendar, MapPin, TrendingUp, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Users, Download, Calendar, TrendingUp, CheckCircle } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
-import { Event, Booking, Profile } from '../../types/database';
+import type { Event, Participation, User } from '../../types/database';
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
 
-interface BookingWithProfile extends Booking {
-  profiles: Profile;
+interface ParticipationWithUser extends Participation {
+  user: User;
 }
 
 export function EventManagement() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
   const [event, setEvent] = useState<Event | null>(null);
-  const [bookings, setBookings] = useState<BookingWithProfile[]>([]);
+  const [participations, setParticipations] = useState<ParticipationWithUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'overview' | 'attendees' | 'analytics'>('overview');
 
@@ -34,25 +34,24 @@ export function EventManagement() {
         .from('events')
         .select('*')
         .eq('id', id)
-        .eq('organizer_id', user!.id)
+        .eq('host_id', user!.id)
         .single();
 
       if (eventError) throw eventError;
       setEvent(eventData);
 
-      // Fetch bookings with user profiles
-      const { data: bookingsData, error: bookingsError } = await supabase
-        .from('bookings')
+      // Fetch participations with user data
+      const { data: participationsData, error: participationsError } = await supabase
+        .from('participates')
         .select(`
           *,
-          profiles:user_id (*)
+          user:user_id (*)
         `)
         .eq('event_id', id)
-        .eq('status', 'confirmed')
         .order('created_at', { ascending: false });
 
-      if (bookingsError) throw bookingsError;
-      setBookings(bookingsData as BookingWithProfile[] || []);
+      if (participationsError) throw participationsError;
+      setParticipations(participationsData as ParticipationWithUser[] || []);
     } catch (error) {
       console.error('Error fetching event data:', error);
     } finally {
@@ -61,16 +60,13 @@ export function EventManagement() {
   };
 
   const exportAttendees = () => {
-    if (bookings.length === 0) return;
+    if (participations.length === 0) return;
 
     const csvContent = [
-      ['Name', 'Email', 'Booking Reference', 'Booking Date', 'Tickets'],
-      ...bookings.map(booking => [
-        booking.profiles.full_name,
-        booking.profiles.email,
-        booking.booking_reference,
-        format(parseISO(booking.created_at), 'yyyy-MM-dd HH:mm'),
-        booking.tickets_quantity.toString()
+      ['User ID', 'Participation Date'],
+      ...participations.map(participation => [
+        participation.user_id,
+        format(parseISO(participation.created_at), 'yyyy-MM-dd HH:mm')
       ])
     ].map(row => row.join(',')).join('\n');
 
@@ -105,8 +101,8 @@ export function EventManagement() {
     );
   }
 
-  const attendanceRate = (event.registered_count / event.capacity) * 100;
-  const isUpcoming = new Date(event.event_date) >= new Date();
+  const attendanceRate = event.capacity ? (participations.length / event.capacity) * 100 : 0;
+  const isUpcoming = new Date(event.start_time) >= new Date();
 
   return (
     <div className="max-w-6xl mx-auto space-y-8">
@@ -133,7 +129,7 @@ export function EventManagement() {
             </Link>
             <button
               onClick={exportAttendees}
-              disabled={bookings.length === 0}
+              disabled={participations.length === 0}
               className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Download className="w-4 h-4" />
@@ -147,11 +143,11 @@ export function EventManagement() {
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <div className="text-center">
-            <div className="text-3xl font-bold text-blue-600 mb-2">{event.registered_count}</div>
+            <div className="text-3xl font-bold text-blue-600 mb-2">{participations.length}</div>
             <div className="text-sm text-gray-600">Total Registrations</div>
           </div>
           <div className="text-center">
-            <div className="text-3xl font-bold text-green-600 mb-2">{event.capacity}</div>
+            <div className="text-3xl font-bold text-green-600 mb-2">{event.capacity || 'Unlimited'}</div>
             <div className="text-sm text-gray-600">Event Capacity</div>
           </div>
           <div className="text-center">
@@ -159,7 +155,9 @@ export function EventManagement() {
             <div className="text-sm text-gray-600">Attendance Rate</div>
           </div>
           <div className="text-center">
-            <div className="text-3xl font-bold text-orange-600 mb-2">{event.capacity - event.registered_count}</div>
+            <div className="text-3xl font-bold text-orange-600 mb-2">
+              {event.capacity ? event.capacity - participations.length : '∞'}
+            </div>
             <div className="text-sm text-gray-600">Available Spots</div>
           </div>
         </div>
@@ -204,18 +202,31 @@ export function EventManagement() {
                       <Calendar className="w-5 h-5 text-blue-600 mt-1" />
                       <div>
                         <div className="font-medium text-gray-900">
-                          {format(parseISO(event.event_date), 'EEEE, MMMM d, yyyy')}
+                          {format(parseISO(event.start_time), 'EEEE, MMMM d, yyyy')}
                         </div>
-                        <div className="text-sm text-gray-500">{event.event_time}</div>
+                        <div className="text-sm text-gray-500">
+                          {format(parseISO(event.start_time), 'h:mm a')} - {format(parseISO(event.end_time), 'h:mm a')}
+                        </div>
                       </div>
                     </div>
-                    <div className="flex items-start space-x-3">
-                      <MapPin className="w-5 h-5 text-blue-600 mt-1" />
-                      <div>
-                        <div className="font-medium text-gray-900">Location</div>
-                        <div className="text-sm text-gray-500">{event.location}</div>
+                    {event.tag && event.tag.length > 0 && (
+                      <div className="flex items-start space-x-3">
+                        <div className="w-5 h-5 mt-1" />
+                        <div>
+                          <div className="font-medium text-gray-900">Tags</div>
+                          <div className="flex flex-wrap gap-2 mt-1">
+                            {event.tag.map((tag, index) => (
+                              <span
+                                key={index}
+                                className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+                              >
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
                 </div>
 
@@ -226,25 +237,29 @@ export function EventManagement() {
                       <span className="text-gray-600">Progress</span>
                       <span className="text-gray-900 font-medium">{attendanceRate.toFixed(1)}%</span>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-3">
-                      <div
-                        className="bg-blue-600 h-3 rounded-full transition-all duration-300"
-                        style={{ width: `${attendanceRate}%` }}
-                      ></div>
-                    </div>
-                    <div className="flex items-center justify-between text-sm text-gray-600">
-                      <span>{event.registered_count} registered</span>
-                      <span>{event.capacity - event.registered_count} remaining</span>
-                    </div>
+                    {event.capacity && (
+                      <>
+                        <div className="w-full bg-gray-200 rounded-full h-3">
+                          <div
+                            className="bg-blue-600 h-3 rounded-full transition-all duration-300"
+                            style={{ width: `${Math.min(attendanceRate, 100)}%` }}
+                          ></div>
+                        </div>
+                        <div className="flex items-center justify-between text-sm text-gray-600">
+                          <span>{participations.length} registered</span>
+                          <span>{event.capacity - participations.length} remaining</span>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
 
-              {event.additional_details && (
+              {event.description && (
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Additional Information</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Event Description</h3>
                   <div className="bg-gray-50 rounded-lg p-6">
-                    <p className="text-gray-700 leading-relaxed">{event.additional_details}</p>
+                    <p className="text-gray-700 leading-relaxed">{event.description}</p>
                   </div>
                 </div>
               )}
@@ -255,11 +270,11 @@ export function EventManagement() {
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold text-gray-900">
-                  Registered Attendees ({bookings.length})
+                  Registered Attendees ({participations.length})
                 </h3>
                 <button
                   onClick={exportAttendees}
-                  disabled={bookings.length === 0}
+                  disabled={participations.length === 0}
                   className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Download className="w-4 h-4" />
@@ -267,11 +282,11 @@ export function EventManagement() {
                 </button>
               </div>
 
-              {bookings.length === 0 ? (
+              {participations.length === 0 ? (
                 <div className="text-center py-12">
                   <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                   <h4 className="text-lg font-semibold text-gray-900 mb-2">No attendees yet</h4>
-                  <p className="text-gray-600">Registrations will appear here once people start booking.</p>
+                  <p className="text-gray-600">Registrations will appear here once people start participating.</p>
                 </div>
               ) : (
                 <div className="overflow-hidden border border-gray-200 rounded-lg">
@@ -279,16 +294,10 @@ export function EventManagement() {
                     <thead className="bg-gray-50">
                       <tr>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Attendee
+                          User ID
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Booking Reference
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Booking Date
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Tickets
+                          Registration Date
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Status
@@ -296,31 +305,24 @@ export function EventManagement() {
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                      {bookings.map(booking => (
-                        <tr key={booking.id} className="hover:bg-gray-50">
+                      {participations.map(participation => (
+                        <tr key={participation.id} className="hover:bg-gray-50">
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="flex items-center">
                               <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
                                 <span className="text-sm font-medium text-blue-600">
-                                  {booking.profiles.full_name.charAt(0)}
+                                  {participation.user_id.slice(0, 2).toUpperCase()}
                                 </span>
                               </div>
                               <div className="ml-4">
-                                <div className="text-sm font-medium text-gray-900">{booking.profiles.full_name}</div>
-                                <div className="text-sm text-gray-500">{booking.profiles.email}</div>
+                                <div className="text-sm font-medium text-gray-900">{participation.user_id}</div>
                               </div>
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm font-mono text-gray-900">{booking.booking_reference}</div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm text-gray-900">
-                              {format(parseISO(booking.created_at), 'MMM d, yyyy')}
+                              {format(parseISO(participation.created_at), 'MMM d, yyyy HH:mm')}
                             </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-900">{booking.tickets_quantity}</div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
@@ -343,12 +345,12 @@ export function EventManagement() {
                 <div className="bg-gray-50 rounded-lg p-6">
                   <h4 className="text-lg font-semibold text-gray-900 mb-4">Registration Timeline</h4>
                   <div className="space-y-4">
-                    {bookings.length === 0 ? (
+                    {participations.length === 0 ? (
                       <p className="text-gray-600">No registrations yet</p>
                     ) : (
                       <div className="text-center">
                         <div className="text-2xl font-bold text-blue-600 mb-2">
-                          {bookings.length}
+                          {participations.length}
                         </div>
                         <div className="text-sm text-gray-600">Total Registrations</div>
                       </div>
@@ -368,21 +370,19 @@ export function EventManagement() {
                     <div className="flex items-center justify-between">
                       <span className="text-gray-600">Registration</span>
                       <span className={`font-medium ${
-                        new Date() <= new Date(event.registration_deadline) 
-                          ? 'text-green-600' 
-                          : 'text-red-600'
+                        isUpcoming ? 'text-green-600' : 'text-red-600'
                       }`}>
-                        {new Date() <= new Date(event.registration_deadline) ? 'Open' : 'Closed'}
+                        {isUpcoming ? 'Open' : 'Closed'}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-gray-600">Capacity Status</span>
                       <span className={`font-medium ${
-                        event.registered_count >= event.capacity 
+                        event.capacity && participations.length >= event.capacity 
                           ? 'text-red-600' 
                           : 'text-green-600'
                       }`}>
-                        {event.registered_count >= event.capacity ? 'Full' : 'Available'}
+                        {event.capacity && participations.length >= event.capacity ? 'Full' : 'Available'}
                       </span>
                     </div>
                   </div>
@@ -400,19 +400,19 @@ export function EventManagement() {
                   </div>
                   <div className="text-center">
                     <div className="text-xl font-bold text-green-600 mb-1">
-                      {bookings.reduce((sum, b) => sum + b.tickets_quantity, 0)}
+                      {participations.length}
                     </div>
-                    <div className="text-sm text-gray-600">Total Tickets</div>
+                    <div className="text-sm text-gray-600">Total Participants</div>
                   </div>
                   <div className="text-center">
                     <div className="text-xl font-bold text-purple-600 mb-1">
-                      {Math.round(bookings.reduce((sum, b) => sum + b.tickets_quantity, 0) / Math.max(bookings.length, 1) * 10) / 10}
+                      {event.capacity || '∞'}
                     </div>
-                    <div className="text-sm text-gray-600">Avg Tickets/Person</div>
+                    <div className="text-sm text-gray-600">Capacity</div>
                   </div>
                   <div className="text-center">
                     <div className="text-xl font-bold text-orange-600 mb-1">
-                      {event.capacity - event.registered_count}
+                      {event.capacity ? event.capacity - participations.length : '∞'}
                     </div>
                     <div className="text-sm text-gray-600">Remaining Spots</div>
                   </div>

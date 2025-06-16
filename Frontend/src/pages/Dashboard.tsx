@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { Search, Filter, Calendar as CalendarIcon, MapPin, Users, Clock, Tag } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Search, Filter, Calendar as CalendarIcon, Users, Clock } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { Event } from '../types/database';
+import type { Event } from '../types/database';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 
 const EVENT_TAGS = ['Academic', 'Social', 'Sports', 'Career', 'Workshop', 'Cultural', 'Technology', 'Arts'];
@@ -18,8 +18,12 @@ const TAG_COLORS: Record<string, string> = {
   Arts: 'bg-yellow-100 text-yellow-800',
 };
 
+interface EventWithParticipationCount extends Event {
+  participationCount: number;
+}
+
 export function Dashboard() {
-  const [events, setEvents] = useState<Event[]>([]);
+  const [events, setEvents] = useState<EventWithParticipationCount[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -35,11 +39,27 @@ export function Dashboard() {
       const { data, error } = await supabase
         .from('events')
         .select('*')
-        .gte('event_date', new Date().toISOString().split('T')[0])
-        .order('event_date', { ascending: true });
+        .gte('start_time', new Date().toISOString())
+        .order('start_time', { ascending: true });
 
       if (error) throw error;
-      setEvents(data || []);
+
+      // Fetch participation counts for each event
+      const eventsWithCounts = await Promise.all(
+        (data || []).map(async (event) => {
+          const { count } = await supabase
+            .from('participates')
+            .select('id', { count: 'exact' })
+            .eq('event_id', event.id);
+          
+          return {
+            ...event,
+            participationCount: count || 0
+          };
+        })
+      );
+
+      setEvents(eventsWithCounts);
     } catch (error) {
       console.error('Error fetching events:', error);
     } finally {
@@ -49,18 +69,17 @@ export function Dashboard() {
 
   const filteredEvents = events.filter(event => {
     const matchesSearch = event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         event.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         event.location.toLowerCase().includes(searchQuery.toLowerCase());
+                         (event.description && event.description.toLowerCase().includes(searchQuery.toLowerCase()));
     
     const matchesTags = selectedTags.length === 0 || 
-                       selectedTags.some(tag => event.tags.includes(tag));
+                       selectedTags.some(tag => event.tag?.includes(tag));
     
     return matchesSearch && matchesTags;
   }).sort((a, b) => {
     if (sortBy === 'date') {
-      return new Date(a.event_date).getTime() - new Date(b.event_date).getTime();
+      return new Date(a.start_time).getTime() - new Date(b.start_time).getTime();
     } else {
-      return b.registered_count - a.registered_count;
+      return b.participationCount - a.participationCount;
     }
   });
 
@@ -156,20 +175,12 @@ export function Dashboard() {
             >
               {/* Event Image */}
               <div className="h-48 bg-gradient-to-r from-blue-500 to-purple-600 relative">
-                {event.image_url ? (
-                  <img
-                    src={event.image_url}
-                    alt={event.title}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <CalendarIcon className="w-16 h-16 text-white/80" />
-                  </div>
-                )}
+                <div className="w-full h-full flex items-center justify-center">
+                  <CalendarIcon className="w-16 h-16 text-white/80" />
+                </div>
                 {/* Availability Badge */}
                 <div className="absolute top-4 right-4">
-                  {event.registered_count >= event.capacity ? (
+                  {event.capacity && event.participationCount >= event.capacity ? (
                     <span className="bg-red-100 text-red-800 text-xs font-medium px-2 py-1 rounded-full">
                       Fully Booked
                     </span>
@@ -184,21 +195,23 @@ export function Dashboard() {
               {/* Event Content */}
               <div className="p-6">
                 {/* Tags */}
-                <div className="flex flex-wrap gap-1 mb-3">
-                  {event.tags.slice(0, 2).map(tag => (
-                    <span
-                      key={tag}
-                      className={`text-xs font-medium px-2 py-1 rounded-full ${TAG_COLORS[tag] || 'bg-gray-100 text-gray-800'}`}
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                  {event.tags.length > 2 && (
-                    <span className="text-xs font-medium px-2 py-1 rounded-full bg-gray-100 text-gray-800">
-                      +{event.tags.length - 2} more
-                    </span>
-                  )}
-                </div>
+                {event.tag && event.tag.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mb-3">
+                    {event.tag.slice(0, 2).map((tag, index) => (
+                      <span
+                        key={index}
+                        className={`text-xs font-medium px-2 py-1 rounded-full ${TAG_COLORS[tag] || 'bg-gray-100 text-gray-800'}`}
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                    {event.tag.length > 2 && (
+                      <span className="text-xs font-medium px-2 py-1 rounded-full bg-gray-100 text-gray-800">
+                        +{event.tag.length - 2} more
+                      </span>
+                    )}
+                  </div>
+                )}
 
                 {/* Title */}
                 <h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2">
@@ -206,25 +219,23 @@ export function Dashboard() {
                 </h3>
 
                 {/* Description */}
-                <p className="text-gray-600 text-sm mb-4 line-clamp-2">
-                  {event.description}
-                </p>
+                {event.description && (
+                  <p className="text-gray-600 text-sm mb-4 line-clamp-2">
+                    {event.description}
+                  </p>
+                )}
 
                 {/* Event Details */}
                 <div className="space-y-2 text-sm text-gray-500">
                   <div className="flex items-center space-x-2">
                     <CalendarIcon className="w-4 h-4" />
-                    <span>{format(parseISO(event.event_date), 'MMM d, yyyy')}</span>
+                    <span>{format(parseISO(event.start_time), 'MMM d, yyyy')}</span>
                     <Clock className="w-4 h-4 ml-2" />
-                    <span>{event.event_time}</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <MapPin className="w-4 h-4" />
-                    <span className="truncate">{event.location}</span>
+                    <span>{format(parseISO(event.start_time), 'h:mm a')}</span>
                   </div>
                   <div className="flex items-center space-x-2">
                     <Users className="w-4 h-4" />
-                    <span>{event.registered_count} / {event.capacity} registered</span>
+                    <span>{event.participationCount} / {event.capacity || 'Unlimited'} registered</span>
                   </div>
                 </div>
               </div>

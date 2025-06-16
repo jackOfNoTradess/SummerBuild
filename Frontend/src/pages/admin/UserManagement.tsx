@@ -1,16 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Search, Filter, Users, Shield, Edit, Trash2, Plus } from 'lucide-react';
+import { ArrowLeft, Search, Filter, Users, Shield, Edit, Trash2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import { Profile } from '../../types/database';
+import type { User } from '../../types/database';
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
 
 export function UserManagement() {
-  const [users, setUsers] = useState<Profile[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRole, setSelectedRole] = useState<string>('all');
-  const [editingUser, setEditingUser] = useState<Profile | null>(null);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
 
   useEffect(() => {
     fetchUsers();
@@ -21,7 +21,7 @@ export function UserManagement() {
       setLoading(true);
       
       const { data, error } = await supabase
-        .from('profiles')
+        .from('users')
         .select('*')
         .order('created_at', { ascending: false });
 
@@ -34,10 +34,10 @@ export function UserManagement() {
     }
   };
 
-  const handleRoleUpdate = async (userId: string, newRole: 'student' | 'organizer' | 'admin') => {
+  const handleRoleUpdate = async (userId: string, newRole: 'USER' | 'ORGANIZER' | 'ADMIN') => {
     try {
       const { error } = await supabase
-        .from('profiles')
+        .from('users')
         .update({ role: newRole, updated_at: new Date().toISOString() })
         .eq('id', userId);
 
@@ -58,29 +58,29 @@ export function UserManagement() {
     if (!confirmed) return;
 
     try {
-      // First delete user's bookings
-      const { error: bookingsError } = await supabase
-        .from('bookings')
+      // First delete user's participations
+      const { error: participationsError } = await supabase
+        .from('participates')
         .delete()
         .eq('user_id', userId);
 
-      if (bookingsError) throw bookingsError;
+      if (participationsError) throw participationsError;
 
       // Then delete user's events (if organizer)
       const { error: eventsError } = await supabase
         .from('events')
         .delete()
-        .eq('organizer_id', userId);
+        .eq('host_id', userId);
 
       if (eventsError) throw eventsError;
 
-      // Finally delete the user profile
-      const { error: profileError } = await supabase
-        .from('profiles')
+      // Finally delete the user
+      const { error: userError } = await supabase
+        .from('users')
         .delete()
         .eq('id', userId);
 
-      if (profileError) throw profileError;
+      if (userError) throw userError;
 
       setUsers(prev => prev.filter(user => user.id !== userId));
     } catch (error) {
@@ -90,17 +90,16 @@ export function UserManagement() {
   };
 
   const filteredUsers = users.filter(user => {
-    const matchesSearch = user.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         user.email.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = user.id.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesRole = selectedRole === 'all' || user.role === selectedRole;
     return matchesSearch && matchesRole;
   });
 
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
-      case 'admin':
+      case 'ADMIN':
         return 'bg-red-100 text-red-800';
-      case 'organizer':
+      case 'ORGANIZER':
         return 'bg-purple-100 text-purple-800';
       default:
         return 'bg-blue-100 text-blue-800';
@@ -138,7 +137,7 @@ export function UserManagement() {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
             <input
               type="text"
-              placeholder="Search users..."
+              placeholder="Search users by ID..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -154,9 +153,9 @@ export function UserManagement() {
               className="border border-gray-300 rounded-lg px-3 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="all">All Roles</option>
-              <option value="student">Students</option>
-              <option value="organizer">Organizers</option>
-              <option value="admin">Admins</option>
+              <option value="USER">Users</option>
+              <option value="ORGANIZER">Organizers</option>
+              <option value="ADMIN">Admins</option>
             </select>
           </div>
         </div>
@@ -190,6 +189,9 @@ export function UserManagement() {
                     Role
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Gender
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Joined
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -205,22 +207,14 @@ export function UserManagement() {
                   <tr key={user.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
-                        {user.avatar_url ? (
-                          <img
-                            src={user.avatar_url}
-                            alt={user.full_name}
-                            className="w-10 h-10 rounded-full"
-                          />
-                        ) : (
-                          <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                            <span className="text-sm font-medium text-blue-600">
-                              {user.full_name.charAt(0)}
-                            </span>
-                          </div>
-                        )}
+                        <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                          <span className="text-sm font-medium text-blue-600">
+                            {user.id.slice(0, 2).toUpperCase()}
+                          </span>
+                        </div>
                         <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900">{user.full_name}</div>
-                          <div className="text-sm text-gray-500">{user.email}</div>
+                          <div className="text-sm font-medium text-gray-900">User {user.id.slice(0, 8)}</div>
+                          <div className="text-sm text-gray-500">{user.id}</div>
                         </div>
                       </div>
                     </td>
@@ -232,9 +226,9 @@ export function UserManagement() {
                             onChange={(e) => handleRoleUpdate(user.id, e.target.value as any)}
                             className="border border-gray-300 rounded px-2 py-1 text-sm"
                           >
-                            <option value="student">Student</option>
-                            <option value="organizer">Organizer</option>
-                            <option value="admin">Admin</option>
+                            <option value="USER">User</option>
+                            <option value="ORGANIZER">Organizer</option>
+                            <option value="ADMIN">Admin</option>
                           </select>
                           <button
                             onClick={() => setEditingUser(null)}
@@ -246,9 +240,12 @@ export function UserManagement() {
                       ) : (
                         <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getRoleBadgeColor(user.role)}`}>
                           <Shield className="w-3 h-3 mr-1" />
-                          {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                          {user.role}
                         </span>
                       )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="text-sm text-gray-900">{user.gender}</span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {new Date(user.created_at).toLocaleDateString()}

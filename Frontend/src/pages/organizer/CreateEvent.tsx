@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Calendar, MapPin, Users, Clock, Tag, Image, FileText, Save } from 'lucide-react';
+import { ArrowLeft, Calendar, Users, Clock, FileText, Save } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
@@ -10,14 +10,10 @@ const EVENT_TAGS = ['Academic', 'Social', 'Sports', 'Career', 'Workshop', 'Cultu
 interface EventFormData {
   title: string;
   description: string;
-  event_date: string;
-  event_time: string;
-  location: string;
+  start_time: string;
+  end_time: string;
   capacity: number;
-  image_url: string;
-  tags: string[];
-  registration_deadline: string;
-  additional_details: string;
+  tag: string[];
 }
 
 export function CreateEvent() {
@@ -27,14 +23,10 @@ export function CreateEvent() {
   const [formData, setFormData] = useState<EventFormData>({
     title: '',
     description: '',
-    event_date: '',
-    event_time: '',
-    location: '',
+    start_time: '',
+    end_time: '',
     capacity: 50,
-    image_url: '',
-    tags: [],
-    registration_deadline: '',
-    additional_details: '',
+    tag: [],
   });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -48,9 +40,9 @@ export function CreateEvent() {
   const handleTagToggle = (tag: string) => {
     setFormData(prev => ({
       ...prev,
-      tags: prev.tags.includes(tag)
-        ? prev.tags.filter(t => t !== tag)
-        : [...prev.tags, tag]
+      tag: prev.tag.includes(tag)
+        ? prev.tag.filter((t: string) => t !== tag)
+        : [...prev.tag, tag]
     }));
   };
 
@@ -59,22 +51,26 @@ export function CreateEvent() {
     if (!user) return;
 
     // Validation
-    if (!formData.title || !formData.description || !formData.event_date || 
-        !formData.event_time || !formData.location || !formData.registration_deadline ||
-        formData.capacity <= 0 || formData.tags.length === 0) {
+    if (!formData.title || !formData.description || !formData.start_time || 
+        !formData.end_time || formData.capacity <= 0 || formData.tag.length === 0) {
       alert('Please fill in all required fields.');
+      return;
+    }
+
+    // Validate that end time is after start time
+    if (new Date(formData.end_time) <= new Date(formData.start_time)) {
+      alert('End time must be after start time.');
       return;
     }
 
     try {
       setLoading(true);
       
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('events')
         .insert({
           ...formData,
-          organizer_id: user.id,
-          registered_count: 0,
+          host_id: user.id,
         })
         .select()
         .single();
@@ -147,62 +143,44 @@ export function CreateEvent() {
             </div>
 
             <div>
-              <label htmlFor="event_date" className="block text-sm font-medium text-gray-700 mb-2">
-                Event Date *
+              <label htmlFor="start_time" className="block text-sm font-medium text-gray-700 mb-2">
+                Start Time *
               </label>
               <div className="relative">
                 <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <input
-                  type="date"
-                  id="event_date"
-                  name="event_date"
+                  type="datetime-local"
+                  id="start_time"
+                  name="start_time"
                   required
-                  value={formData.event_date}
+                  value={formData.start_time}
                   onChange={handleInputChange}
-                  min={new Date().toISOString().split('T')[0]}
+                  min={new Date().toISOString().slice(0, 16)}
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
             </div>
 
             <div>
-              <label htmlFor="event_time" className="block text-sm font-medium text-gray-700 mb-2">
-                Event Time *
+              <label htmlFor="end_time" className="block text-sm font-medium text-gray-700 mb-2">
+                End Time *
               </label>
               <div className="relative">
                 <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <input
-                  type="time"
-                  id="event_time"
-                  name="event_time"
+                  type="datetime-local"
+                  id="end_time"
+                  name="end_time"
                   required
-                  value={formData.event_time}
+                  value={formData.end_time}
                   onChange={handleInputChange}
+                  min={formData.start_time || new Date().toISOString().slice(0, 16)}
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
             </div>
 
-            <div>
-              <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-2">
-                Location *
-              </label>
-              <div className="relative">
-                <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                <input
-                  type="text"
-                  id="location"
-                  name="location"
-                  required
-                  value={formData.location}
-                  onChange={handleInputChange}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Event location"
-                />
-              </div>
-            </div>
-
-            <div>
+            <div className="lg:col-span-2">
               <label htmlFor="capacity" className="block text-sm font-medium text-gray-700 mb-2">
                 Capacity *
               </label>
@@ -221,44 +199,6 @@ export function CreateEvent() {
                 />
               </div>
             </div>
-
-            <div>
-              <label htmlFor="registration_deadline" className="block text-sm font-medium text-gray-700 mb-2">
-                Registration Deadline *
-              </label>
-              <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                <input
-                  type="date"
-                  id="registration_deadline"
-                  name="registration_deadline"
-                  required
-                  value={formData.registration_deadline}
-                  onChange={handleInputChange}
-                  min={new Date().toISOString().split('T')[0]}
-                  max={formData.event_date}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label htmlFor="image_url" className="block text-sm font-medium text-gray-700 mb-2">
-                Event Image URL
-              </label>
-              <div className="relative">
-                <Image className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                <input
-                  type="url"
-                  id="image_url"
-                  name="image_url"
-                  value={formData.image_url}
-                  onChange={handleInputChange}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="https://example.com/image.jpg"
-                />
-              </div>
-            </div>
           </div>
         </div>
 
@@ -274,7 +214,7 @@ export function CreateEvent() {
                 type="button"
                 onClick={() => handleTagToggle(tag)}
                 className={`px-4 py-2 rounded-full text-sm font-medium transition-colors duration-200 ${
-                  formData.tags.includes(tag)
+                  formData.tag.includes(tag)
                     ? 'bg-blue-600 text-white'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
@@ -282,26 +222,6 @@ export function CreateEvent() {
                 {tag}
               </button>
             ))}
-          </div>
-        </div>
-
-        {/* Additional Details */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
-          <h2 className="text-xl font-semibold text-gray-900 mb-6">Additional Details</h2>
-          
-          <div>
-            <label htmlFor="additional_details" className="block text-sm font-medium text-gray-700 mb-2">
-              Additional Information
-            </label>
-            <textarea
-              id="additional_details"
-              name="additional_details"
-              rows={6}
-              value={formData.additional_details}
-              onChange={handleInputChange}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Any additional details, requirements, or instructions for attendees..."
-            />
           </div>
         </div>
 
@@ -320,7 +240,7 @@ export function CreateEvent() {
           >
             {loading ? (
               <>
-                <LoadingSpinner size="sm\" className="text-white" />
+                <LoadingSpinner size="sm" className="text-white" />
                 <span>Creating...</span>
               </>
             ) : (

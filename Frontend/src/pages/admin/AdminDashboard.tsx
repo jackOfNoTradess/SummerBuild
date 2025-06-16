@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Users, Calendar, TrendingUp, Shield, Eye, Edit, Trash2 } from 'lucide-react';
+import { Users, Calendar, TrendingUp, Shield, Eye } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import { Event, Profile } from '../../types/database';
+import type { Event, User } from '../../types/database';
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
 
 export function AdminDashboard() {
@@ -10,11 +10,11 @@ export function AdminDashboard() {
   const [stats, setStats] = useState({
     totalUsers: 0,
     totalEvents: 0,
-    totalBookings: 0,
+    totalParticipations: 0,
     totalOrganizers: 0,
   });
   const [recentEvents, setRecentEvents] = useState<Event[]>([]);
-  const [recentUsers, setRecentUsers] = useState<Profile[]>([]);
+  const [recentUsers, setRecentUsers] = useState<User[]>([]);
 
   useEffect(() => {
     fetchDashboardData();
@@ -25,17 +25,17 @@ export function AdminDashboard() {
       setLoading(true);
 
       // Fetch stats
-      const [usersResult, eventsResult, bookingsResult, organizersResult] = await Promise.all([
-        supabase.from('profiles').select('id', { count: 'exact' }),
+      const [usersResult, eventsResult, participationsResult, organizersResult] = await Promise.all([
+        supabase.from('users').select('id', { count: 'exact' }),
         supabase.from('events').select('id', { count: 'exact' }),
-        supabase.from('bookings').select('id', { count: 'exact' }).eq('status', 'confirmed'),
-        supabase.from('profiles').select('id', { count: 'exact' }).eq('role', 'organizer'),
+        supabase.from('participates').select('id', { count: 'exact' }),
+        supabase.from('users').select('id', { count: 'exact' }).eq('role', 'ORGANIZER'),
       ]);
 
       setStats({
         totalUsers: usersResult.count || 0,
         totalEvents: eventsResult.count || 0,
-        totalBookings: bookingsResult.count || 0,
+        totalParticipations: participationsResult.count || 0,
         totalOrganizers: organizersResult.count || 0,
       });
 
@@ -50,7 +50,7 @@ export function AdminDashboard() {
 
       // Fetch recent users
       const { data: usersData } = await supabase
-        .from('profiles')
+        .from('users')
         .select('*')
         .order('created_at', { ascending: false })
         .limit(5);
@@ -117,8 +117,8 @@ export function AdminDashboard() {
               <TrendingUp className="w-6 h-6 text-purple-600" />
             </div>
             <div>
-              <div className="text-2xl font-bold text-gray-900">{stats.totalBookings}</div>
-              <div className="text-sm text-gray-600">Total Bookings</div>
+              <div className="text-2xl font-bold text-gray-900">{stats.totalParticipations}</div>
+              <div className="text-sm text-gray-600">Total Participations</div>
             </div>
           </div>
         </div>
@@ -155,24 +155,40 @@ export function AdminDashboard() {
               <p className="text-gray-600 text-center py-4">No events yet</p>
             ) : (
               <div className="space-y-4">
-                {recentEvents.map(event => (
-                  <div key={event.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-                    <div className="flex-1">
-                      <h3 className="font-medium text-gray-900 truncate">{event.title}</h3>
-                      <p className="text-sm text-gray-600">
-                        {event.registered_count} / {event.capacity} registered
-                      </p>
+                {recentEvents.map(event => {
+                  // Calculate participation count for each event
+                  const [participationCount, setParticipationCount] = useState(0);
+                  
+                  React.useEffect(() => {
+                    const fetchParticipationCount = async () => {
+                      const { count } = await supabase
+                        .from('participates')
+                        .select('id', { count: 'exact' })
+                        .eq('event_id', event.id);
+                      setParticipationCount(count || 0);
+                    };
+                    fetchParticipationCount();
+                  }, [event.id]);
+
+                  return (
+                    <div key={event.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+                      <div className="flex-1">
+                        <h3 className="font-medium text-gray-900 truncate">{event.title}</h3>
+                        <p className="text-sm text-gray-600">
+                          {participationCount} / {event.capacity || 'Unlimited'} registered
+                        </p>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Link
+                          to={`/events/${event.id}`}
+                          className="p-2 text-gray-400 hover:text-blue-600 rounded-lg"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </Link>
+                      </div>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <Link
-                        to={`/events/${event.id}`}
-                        className="p-2 text-gray-400 hover:text-blue-600 rounded-lg"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </Link>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -201,18 +217,18 @@ export function AdminDashboard() {
                     <div className="flex items-center space-x-3">
                       <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
                         <span className="text-sm font-medium text-blue-600">
-                          {user.full_name.charAt(0)}
+                          {user.id.slice(0, 2).toUpperCase()}
                         </span>
                       </div>
                       <div>
-                        <div className="font-medium text-gray-900">{user.full_name}</div>
-                        <div className="text-sm text-gray-500">{user.email}</div>
+                        <div className="font-medium text-gray-900">User {user.id.slice(0, 8)}</div>
+                        <div className="text-sm text-gray-500">{user.role}</div>
                       </div>
                     </div>
                     <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                      user.role === 'admin' 
+                      user.role === 'ADMIN' 
                         ? 'bg-red-100 text-red-800'
-                        : user.role === 'organizer'
+                        : user.role === 'ORGANIZER'
                         ? 'bg-purple-100 text-purple-800'
                         : 'bg-blue-100 text-blue-800'
                     }`}>
