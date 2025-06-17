@@ -43,11 +43,7 @@ RUN curl -fsSL https://archive.apache.org/dist/maven/maven-3/3.9.6/binaries/apac
 ENV MAVEN_HOME=/opt/maven
 ENV PATH="${MAVEN_HOME}/bin:${PATH}"
 
-<<<<<<< Updated upstream
-# Install Node.js and npm
-=======
 # Install Node.js 22 (LTS) and npm
->>>>>>> Stashed changes
 RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
     && apt-get install -y nodejs
 
