@@ -9,7 +9,7 @@ RUN sudo apt-get update && apt-get install -y \
     python3 \
     python3-pip \
     software-properties-common \
-    && pip3 install pre-commit \
+    && pip3 install --break-system-packages pre-commit \
     && rm -rf /var/lib/apt/lists/*
 
 # Install OpenJDK 21 based on architecture
@@ -42,6 +42,10 @@ RUN curl -fsSL https://archive.apache.org/dist/maven/maven-3/3.9.6/binaries/apac
     ln -s /opt/apache-maven-3.9.6 /opt/maven
 ENV MAVEN_HOME=/opt/maven
 ENV PATH="${MAVEN_HOME}/bin:${PATH}"
+
+# Install Node.js 22 (LTS) and npm
+RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
+    && apt-get install -y nodejs
 
 # Set working directory
 WORKDIR /workspaces
