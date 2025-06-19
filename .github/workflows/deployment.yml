@@ -29,13 +29,16 @@ jobs:
           mvn clean package -DskipTests
           echo "backend finish building"
 
+      - run: echo "logging into azure"
       # step 2, login to azure
       - name: Azure login
         uses: azure/login@v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
-        run: echo "done logging into azure"
+
+      - run: echo "done logging into azure"
       
+      - run: echo "configuring app settings"
       # step 3. configure azure app settings (for applications.properties)
       - name: configure azure app settings
         uses: azure/appservice-settings@v1
@@ -52,7 +55,9 @@ jobs:
               {"name":"SUPABASE_JWT_SECRET","value":"${{ secrets.SUPABASE_JWT_SECRET }}"},
               {"name":"SUPABASE_SERVICE_KEY","value":"${{ secrets.SUPABASE_SERVICE_KEY }}"}
             ]
+      - run: echo "done configuring app settings"
       
+      - run: echo "deploying to azure app serivce"
       # step 4: deploying to app service
       - name: deply to app service
         uses: azure/webapps-deploy@v3
@@ -60,5 +65,6 @@ jobs:
           app-name: ${{ env.AZURE_WEBAPP_NAME }}
           resource-group: ${{ env.AZURE_RESOURCE_GROUP }}
           package: ${{ env.PACKAGE_PATH }}
+      - run: echo "done deploying to azure app serivce"
 
       
