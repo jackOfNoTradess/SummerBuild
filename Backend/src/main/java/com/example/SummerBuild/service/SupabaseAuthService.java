@@ -21,8 +21,7 @@ import org.springframework.web.client.RestTemplate;
 @Service
 public class SupabaseAuthService {
 
-  @Autowired
-  private UserRepository userRepository;
+  @Autowired private UserRepository userRepository;
   private final RestTemplate restTemplate;
   private static final Logger logger = LoggerFactory.getLogger(SupabaseAuthService.class);
 
@@ -56,7 +55,8 @@ public class SupabaseAuthService {
 
     HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
 
-    ResponseEntity<String> response = restTemplate.exchange(signupUrl, HttpMethod.POST, request, String.class);
+    ResponseEntity<String> response =
+        restTemplate.exchange(signupUrl, HttpMethod.POST, request, String.class);
     // inserting into database table for unique role and gender
     ObjectMapper objectMapper = new ObjectMapper();
     JsonNode jsonNode;

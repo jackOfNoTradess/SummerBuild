@@ -24,18 +24,15 @@ import org.springframework.web.client.RestTemplate;
 
 class UserServiceTest {
 
-  @Mock
-  private UserRepository userRepository;
-  @Mock
-  private UserMapper userMapper;
-  @InjectMocks
-  private UserService userService;
+  @Mock private UserRepository userRepository;
+  @Mock private UserMapper userMapper;
+  @InjectMocks private UserService userService;
 
-  @Captor
-  private ArgumentCaptor<UUID> uuidCaptor;
+  @Captor private ArgumentCaptor<UUID> uuidCaptor;
 
   private final UUID userId = UUID.randomUUID();
-  private final User user = User.builder().id(userId).gender(Gender.MALE).role(UserRole.USER).build();
+  private final User user =
+      User.builder().id(userId).gender(Gender.MALE).role(UserRole.USER).build();
 
   private final UserDto userDto = new UserDto();
 
@@ -110,7 +107,7 @@ class UserServiceTest {
 
     String response = "{\"message\": \"ok\"}";
     when(restTemplateMock.exchange(
-        anyString(), eq(HttpMethod.GET), any(HttpEntity.class), eq(String.class)))
+            anyString(), eq(HttpMethod.GET), any(HttpEntity.class), eq(String.class)))
         .thenReturn(new ResponseEntity<>(response, HttpStatus.OK));
 
     ResponseEntity<String> result = userService.getAllUsers();
@@ -125,10 +122,10 @@ class UserServiceTest {
     ReflectionTestUtils.setField(userService, "restTemplate", restTemplateMock);
 
     when(restTemplateMock.exchange(
-        contains(userId.toString()),
-        eq(HttpMethod.GET),
-        any(HttpEntity.class),
-        eq(String.class)))
+            contains(userId.toString()),
+            eq(HttpMethod.GET),
+            any(HttpEntity.class),
+            eq(String.class)))
         .thenReturn(ResponseEntity.ok("{\"email\":\"test@example.com\"}"));
 
     ResponseEntity<String> result = userService.getUserById(userId);
@@ -140,16 +137,18 @@ class UserServiceTest {
     RestTemplate restTemplateMock = mock(RestTemplate.class);
     ReflectionTestUtils.setField(userService, "restTemplate", restTemplateMock);
 
-    String errorJson = "{\"code\":404,\"error_code\":\"user_not_found\",\"msg\":\"User not found\"}";
+    String errorJson =
+        "{\"code\":404,\"error_code\":\"user_not_found\",\"msg\":\"User not found\"}";
 
-    HttpClientErrorException exception = HttpClientErrorException.create(
-        HttpStatus.NOT_FOUND, "Not Found", HttpHeaders.EMPTY, errorJson.getBytes(), null);
+    HttpClientErrorException exception =
+        HttpClientErrorException.create(
+            HttpStatus.NOT_FOUND, "Not Found", HttpHeaders.EMPTY, errorJson.getBytes(), null);
 
     when(restTemplateMock.exchange(
-        contains(userId.toString()),
-        eq(HttpMethod.DELETE),
-        any(HttpEntity.class),
-        eq(String.class)))
+            contains(userId.toString()),
+            eq(HttpMethod.DELETE),
+            any(HttpEntity.class),
+            eq(String.class)))
         .thenThrow(exception);
 
     ResponseEntity<String> result = userService.deleteUserById(userId);

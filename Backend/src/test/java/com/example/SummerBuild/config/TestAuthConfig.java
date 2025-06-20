@@ -40,14 +40,15 @@ public class TestAuthConfig {
 
     // Mock successful signup
     when(mockService.signup(
-        anyString(), anyString(), anyString(), any(UserRole.class), any(Gender.class)))
+            anyString(), anyString(), anyString(), any(UserRole.class), any(Gender.class)))
         .thenAnswer(
             invocation -> {
               String email = invocation.getArgument(0);
               String uuid = UUID.nameUUIDFromBytes(email.getBytes()).toString();
               String token = generateJwtToken(uuid, email, "USER");
-              String response = String.format(
-                  """
+              String response =
+                  String.format(
+                      """
                       {
                           "access_token": "%s",
                           "user": {
@@ -60,7 +61,7 @@ public class TestAuthConfig {
                               }
                           }
                       }""",
-                  token, uuid, email);
+                      token, uuid, email);
               return ResponseEntity.ok(response);
             });
 
@@ -71,8 +72,9 @@ public class TestAuthConfig {
               String email = invocation.getArgument(0);
               String uuid = UUID.nameUUIDFromBytes(email.getBytes()).toString();
               String token = generateJwtToken(uuid, email, "USER");
-              String response = String.format(
-                  """
+              String response =
+                  String.format(
+                      """
                       {
                           "access_token": "%s",
                           "user": {
@@ -80,7 +82,7 @@ public class TestAuthConfig {
                               "email": "%s"
                           }
                       }""",
-                  token, uuid, email);
+                      token, uuid, email);
               return ResponseEntity.ok(response);
             });
 
