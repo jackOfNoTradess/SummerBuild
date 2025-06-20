@@ -28,21 +28,26 @@ import org.springframework.http.*;
 import org.springframework.test.context.TestPropertySource;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@Import({TestAuthConfig.class, TestSecurityConfig.class})
+@Import({ TestAuthConfig.class, TestSecurityConfig.class })
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestPropertySource(locations = "classpath:application-test.properties")
 public class UserAPIIntegrationTest {
 
-  @LocalServerPort private int port;
+  @LocalServerPort
+  private int port;
 
-  @Autowired private TestRestTemplate restTemplate;
-  @Autowired private UserRepository userRepository;
-  @MockBean private UserService userService;
-  @Autowired private UserMapper userMapper;
+  @Autowired
+  private TestRestTemplate restTemplate;
+  @Autowired
+  private UserRepository userRepository;
+  @MockBean
+  private UserService userService;
+  @Autowired
+  private UserMapper userMapper;
 
-  @Value("${supabase.jwtSecret}")
-  private String jwtSecret;
+  @Value("${supabase.jwt.secret}")
+  private String jwt.secret;
 
   private String baseUrl;
   private final ObjectMapper objectMapper = new ObjectMapper();
@@ -81,10 +86,9 @@ public class UserAPIIntegrationTest {
                   .findById(id)
                   .map(
                       user -> {
-                        String response =
-                            String.format(
-                                "{\"id\":\"%s\",\"role\":\"%s\",\"gender\":\"%s\"}",
-                                user.getId(), user.getRole(), user.getGender());
+                        String response = String.format(
+                            "{\"id\":\"%s\",\"role\":\"%s\",\"gender\":\"%s\"}",
+                            user.getId(), user.getRole(), user.getGender());
                         return ResponseEntity.ok(response);
                       })
                   .orElse(ResponseEntity.notFound().build());
@@ -107,8 +111,8 @@ public class UserAPIIntegrationTest {
     HttpHeaders headers = new HttpHeaders();
     headers.setBearerAuth(jwtToken);
     HttpEntity<Void> entity = new HttpEntity<>(headers);
-    ResponseEntity<UserDto[]> response =
-        restTemplate.exchange(baseUrl + "/role/USER", HttpMethod.GET, entity, UserDto[].class);
+    ResponseEntity<UserDto[]> response = restTemplate.exchange(baseUrl + "/role/USER", HttpMethod.GET, entity,
+        UserDto[].class);
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     assertThat(response.getBody()).isNotNull();
@@ -122,8 +126,8 @@ public class UserAPIIntegrationTest {
     HttpHeaders headers = new HttpHeaders();
     headers.setBearerAuth(jwtToken);
     HttpEntity<Void> entity = new HttpEntity<>(headers);
-    ResponseEntity<String> response =
-        restTemplate.exchange(baseUrl + "/role/MODERATOR", HttpMethod.GET, entity, String.class);
+    ResponseEntity<String> response = restTemplate.exchange(baseUrl + "/role/MODERATOR", HttpMethod.GET, entity,
+        String.class);
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
   }
@@ -138,8 +142,8 @@ public class UserAPIIntegrationTest {
     HttpHeaders headers = new HttpHeaders();
     headers.setBearerAuth(jwtToken);
     HttpEntity<Void> entity = new HttpEntity<>(headers);
-    ResponseEntity<String> response =
-        restTemplate.exchange(baseUrl + "/" + userId, HttpMethod.GET, entity, String.class);
+    ResponseEntity<String> response = restTemplate.exchange(baseUrl + "/" + userId, HttpMethod.GET, entity,
+        String.class);
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     assertThat(response.getBody()).isNotNull();
@@ -148,7 +152,7 @@ public class UserAPIIntegrationTest {
 
   private String generateJwtToken() {
     try {
-      byte[] decoded = java.util.Base64.getDecoder().decode(jwtSecret);
+      byte[] decoded = java.util.Base64.getDecoder().decode(jwt.secret);
       java.security.Key key = io.jsonwebtoken.security.Keys.hmacShaKeyFor(decoded);
       java.util.Map<String, Object> claims = new java.util.HashMap<>();
       claims.put("sub", java.util.UUID.randomUUID().toString());

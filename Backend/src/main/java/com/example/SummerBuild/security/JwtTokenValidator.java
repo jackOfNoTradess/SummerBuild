@@ -16,7 +16,7 @@ public class JwtTokenValidator {
   private final Key key;
   private static final Logger logger = LoggerFactory.getLogger(JwtTokenValidator.class);
 
-  public JwtTokenValidator(@Value("${supabase.jwtSecret}") String secret) {
+  public JwtTokenValidator(@Value("${supabase.jwt.secret}") String secret) {
     byte[] decoded = Base64.getDecoder().decode(secret);
     this.key = Keys.hmacShaKeyFor(decoded);
   }

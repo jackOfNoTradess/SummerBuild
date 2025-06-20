@@ -24,8 +24,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 @Profile("test")
 public class TestAuthConfig {
 
-  @Value("${supabase.jwtSecret}")
-  private String jwtSecret;
+  @Value("${supabase.jwt.secret}")
+  private String jwt.secret;
 
   @Bean
   @Primary
@@ -40,28 +40,27 @@ public class TestAuthConfig {
 
     // Mock successful signup
     when(mockService.signup(
-            anyString(), anyString(), anyString(), any(UserRole.class), any(Gender.class)))
+        anyString(), anyString(), anyString(), any(UserRole.class), any(Gender.class)))
         .thenAnswer(
             invocation -> {
               String email = invocation.getArgument(0);
               String uuid = UUID.nameUUIDFromBytes(email.getBytes()).toString();
               String token = generateJwtToken(uuid, email, "USER");
-              String response =
-                  String.format(
-                      """
-                    {
-                        "access_token": "%s",
-                        "user": {
-                            "id": "%s",
-                            "email": "%s",
-                            "created_at": "2025-01-01T00:00:00.000000Z",
-                            "email_confirmed_at": "2025-01-01T00:00:00.000000Z",
-                            "user_metadata": {
-                                "display_name": "Test User"
-                            }
-                        }
-                    }""",
-                      token, uuid, email);
+              String response = String.format(
+                  """
+                      {
+                          "access_token": "%s",
+                          "user": {
+                              "id": "%s",
+                              "email": "%s",
+                              "created_at": "2025-01-01T00:00:00.000000Z",
+                              "email_confirmed_at": "2025-01-01T00:00:00.000000Z",
+                              "user_metadata": {
+                                  "display_name": "Test User"
+                              }
+                          }
+                      }""",
+                  token, uuid, email);
               return ResponseEntity.ok(response);
             });
 
@@ -72,17 +71,16 @@ public class TestAuthConfig {
               String email = invocation.getArgument(0);
               String uuid = UUID.nameUUIDFromBytes(email.getBytes()).toString();
               String token = generateJwtToken(uuid, email, "USER");
-              String response =
-                  String.format(
-                      """
-                    {
-                        "access_token": "%s",
-                        "user": {
-                            "id": "%s",
-                            "email": "%s"
-                        }
-                    }""",
-                      token, uuid, email);
+              String response = String.format(
+                  """
+                      {
+                          "access_token": "%s",
+                          "user": {
+                              "id": "%s",
+                              "email": "%s"
+                          }
+                      }""",
+                  token, uuid, email);
               return ResponseEntity.ok(response);
             });
 
@@ -97,7 +95,7 @@ public class TestAuthConfig {
 
   private String generateJwtToken(String userId, String email, String role) {
     try {
-      byte[] decoded = Base64.getDecoder().decode(jwtSecret);
+      byte[] decoded = Base64.getDecoder().decode(jwt.secret);
       Key key = Keys.hmacShaKeyFor(decoded);
 
       Map<String, Object> claims = new HashMap<>();

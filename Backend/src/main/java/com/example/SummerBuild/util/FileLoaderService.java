@@ -26,7 +26,7 @@ public class FileLoaderService {
   @Value("${supabase.auth.url}")
   private String supabaseUrl;
 
-  @Value("${supabase.serviceKey}")
+  @Value("${supabase.service.key}")
   private String supabaseApiKey;
 
   public FileLoaderService() {
@@ -63,8 +63,8 @@ public class FileLoaderService {
 
         HttpEntity<byte[]> requestEntity = new HttpEntity<>(fileBytes, headers);
 
-        ResponseEntity<String> response =
-            restTemplate.exchange(fullFilePath, HttpMethod.POST, requestEntity, String.class);
+        ResponseEntity<String> response = restTemplate.exchange(fullFilePath, HttpMethod.POST, requestEntity,
+            String.class);
 
         if (response.getStatusCode().is2xxSuccessful()) {
           logger.info(
@@ -111,8 +111,7 @@ public class FileLoaderService {
       HttpHeaders headers = buildHeaders();
       HttpEntity<Void> requestEntity = new HttpEntity<>(headers);
 
-      ResponseEntity<String> response =
-          restTemplate.exchange(filePath, HttpMethod.DELETE, requestEntity, String.class);
+      ResponseEntity<String> response = restTemplate.exchange(filePath, HttpMethod.DELETE, requestEntity, String.class);
 
       if (response.getStatusCode().is2xxSuccessful()) {
         logger.info("File deleted successfully: {}", fileName);
@@ -135,8 +134,7 @@ public class FileLoaderService {
       HttpHeaders headers = buildHeaders();
       HttpEntity<Void> requestEntity = new HttpEntity<>(headers);
 
-      ResponseEntity<byte[]> response =
-          restTemplate.exchange(filePath, HttpMethod.GET, requestEntity, byte[].class);
+      ResponseEntity<byte[]> response = restTemplate.exchange(filePath, HttpMethod.GET, requestEntity, byte[].class);
 
       return response.getStatusCode().is2xxSuccessful();
     } catch (HttpClientErrorException e) {

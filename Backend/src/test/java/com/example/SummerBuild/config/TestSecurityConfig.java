@@ -33,8 +33,8 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @Profile("test")
 public class TestSecurityConfig {
 
-  @Value("${supabase.jwtSecret}")
-  private String jwtSecret;
+  @Value("${supabase.jwt.secret}")
+  private String jwt.secret;
 
   @Bean
   @Primary
@@ -44,13 +44,12 @@ public class TestSecurityConfig {
         .sessionManagement(
             session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .authorizeHttpRequests(
-            auth ->
-                auth.requestMatchers("/api/auth/**")
-                    .permitAll()
-                    .requestMatchers("/api/users/**")
-                    .authenticated()
-                    .anyRequest()
-                    .authenticated())
+            auth -> auth.requestMatchers("/api/auth/**")
+                .permitAll()
+                .requestMatchers("/api/users/**")
+                .authenticated()
+                .anyRequest()
+                .authenticated())
         .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
     return http.build();
   }
@@ -69,11 +68,10 @@ public class TestSecurityConfig {
               }
 
               try {
-                byte[] decoded = Base64.getDecoder().decode(jwtSecret);
+                byte[] decoded = Base64.getDecoder().decode(jwt.secret);
                 Key key = Keys.hmacShaKeyFor(decoded);
 
-                Claims claims =
-                    Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token).getBody();
+                Claims claims = Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token).getBody();
 
                 // Check if token is expired
                 if (claims.getExpiration().before(new Date())) {

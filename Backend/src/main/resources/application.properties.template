@@ -29,9 +29,9 @@ spring.flyway.table=flyway_schema_history
 
 
 supabase.auth.url=${SUPABASE_URL}
-supabase.anonKey=${SUPABASE_ANON_KEY}
-supabase.jwtSecret=${SUPABASE_JWT_SECRET}
-supabase.serviceKey=${SUPABASE_SERVICE_KEY}
+supabase.anon.key=${SUPABASE_ANON_KEY}
+supabase.jwt.secret=${SUPABASE_JWT_SECRET}
+supabase.service.key=${SUPABASE_SERVICE_KEY}
 
 spring.servlet.multipart.enabled=true
 spring.servlet.multipart.max-file-size=10MB
