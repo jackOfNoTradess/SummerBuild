@@ -49,12 +49,14 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: java-app
-      - name: Login to Azure
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.__clientidsecretname__ }}
-          tenant-id: ${{ secrets.__tenantidsecretname__ }}
-          subscription-id: ${{ secrets.__subscriptionidsecretname__ }}
+      
+      # cant find oidc credentials for this
+      # - name: Login to Azure
+      #   uses: azure/login@v2
+      #   with:
+      #     client-id: ${{ secrets.__clientidsecretname__ }}
+      #     tenant-id: ${{ secrets.__tenantidsecretname__ }}
+      #     subscription-id: ${{ secrets.__subscriptionidsecretname__ }}
 
 
       - name: Deploy to Azure Web App
@@ -64,3 +66,4 @@ jobs:
           app-name: 'UniversityEvents'
           slot-name: 'Production'
           package: '*.jar'
+          publish-profile: ${{ secrets.__publishingprofilesecretname__ }}
