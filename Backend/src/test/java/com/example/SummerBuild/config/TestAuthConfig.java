@@ -25,7 +25,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 public class TestAuthConfig {
 
   @Value("${supabase.jwt.secret}")
-  private String jwt.secret;
+  private String jwtSecret;
 
   @Bean
   @Primary
@@ -95,7 +95,7 @@ public class TestAuthConfig {
 
   private String generateJwtToken(String userId, String email, String role) {
     try {
-      byte[] decoded = Base64.getDecoder().decode(jwt.secret);
+      byte[] decoded = Base64.getDecoder().decode(jwtSecret);
       Key key = Keys.hmacShaKeyFor(decoded);
 
       Map<String, Object> claims = new HashMap<>();

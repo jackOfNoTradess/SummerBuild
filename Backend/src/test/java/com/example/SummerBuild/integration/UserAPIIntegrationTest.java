@@ -47,7 +47,7 @@ public class UserAPIIntegrationTest {
   private UserMapper userMapper;
 
   @Value("${supabase.jwt.secret}")
-  private String jwt.secret;
+  private String jwtSecret;
 
   private String baseUrl;
   private final ObjectMapper objectMapper = new ObjectMapper();
@@ -152,7 +152,7 @@ public class UserAPIIntegrationTest {
 
   private String generateJwtToken() {
     try {
-      byte[] decoded = java.util.Base64.getDecoder().decode(jwt.secret);
+      byte[] decoded = java.util.Base64.getDecoder().decode(jwtSecret);
       java.security.Key key = io.jsonwebtoken.security.Keys.hmacShaKeyFor(decoded);
       java.util.Map<String, Object> claims = new java.util.HashMap<>();
       claims.put("sub", java.util.UUID.randomUUID().toString());

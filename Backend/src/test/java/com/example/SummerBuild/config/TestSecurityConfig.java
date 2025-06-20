@@ -34,7 +34,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class TestSecurityConfig {
 
   @Value("${supabase.jwt.secret}")
-  private String jwt.secret;
+  private String jwtSecret;
 
   @Bean
   @Primary
@@ -68,7 +68,7 @@ public class TestSecurityConfig {
               }
 
               try {
-                byte[] decoded = Base64.getDecoder().decode(jwt.secret);
+                byte[] decoded = Base64.getDecoder().decode(jwtSecret);
                 Key key = Keys.hmacShaKeyFor(decoded);
 
                 Claims claims = Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token).getBody();
