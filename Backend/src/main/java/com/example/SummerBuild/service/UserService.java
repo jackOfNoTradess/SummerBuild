@@ -29,7 +29,7 @@ public class UserService {
   private static final Logger logger = LoggerFactory.getLogger(UserService.class);
 
   @Value("${supabase.service.key}")
-  private String service.key;
+  private String serviceKey;
 
   @Value("${supabase.auth.url}")
   private String supabaseUrl;
@@ -81,8 +81,8 @@ public class UserService {
   public ResponseEntity<String> getAllUsers() {
     try {
       HttpHeaders headers = new HttpHeaders();
-      headers.set("apikey", service.key);
-      headers.set("Authorization", "Bearer " + service.key);
+      headers.set("apikey", serviceKey);
+      headers.set("Authorization", "Bearer " + serviceKey);
       headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
 
       HttpEntity<String> entity = new HttpEntity<>(headers);
@@ -104,8 +104,8 @@ public class UserService {
   public ResponseEntity<String> getUserById(UUID userId) {
     try {
       HttpHeaders headers = new HttpHeaders();
-      headers.set("apikey", service.key);
-      headers.set("Authorization", "Bearer " + service.key);
+      headers.set("apikey", serviceKey);
+      headers.set("Authorization", "Bearer " + serviceKey);
       headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
 
       HttpEntity<String> entity = new HttpEntity<>(headers);
@@ -127,8 +127,8 @@ public class UserService {
   public ResponseEntity<String> deleteUserById(UUID userId) {
     try {
       HttpHeaders headers = new HttpHeaders();
-      headers.set("apikey", service.key);
-      headers.set("Authorization", "Bearer " + service.key);
+      headers.set("apikey", serviceKey);
+      headers.set("Authorization", "Bearer " + serviceKey);
       headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
 
       HttpEntity<String> entity = new HttpEntity<>(headers);
@@ -150,8 +150,8 @@ public class UserService {
   public ResponseEntity<String> updateUserById(UUID userId, Map<String, Object> updates) {
     try {
       HttpHeaders headers = new HttpHeaders();
-      headers.set("apikey", service.key);
-      headers.set("Authorization", "Bearer " + service.key);
+      headers.set("apikey", serviceKey);
+      headers.set("Authorization", "Bearer " + serviceKey);
       headers.setContentType(MediaType.APPLICATION_JSON);
       headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
 
