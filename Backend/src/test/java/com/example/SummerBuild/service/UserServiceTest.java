@@ -40,7 +40,7 @@ class UserServiceTest {
   void setUp() {
     MockitoAnnotations.openMocks(this);
     userService = new UserService(userRepository, userMapper);
-    ReflectionTestUtils.setField(userService, "serviceKey", "dummyServiceKey");
+    ReflectionTestUtils.setField(userService, "service.key", "dummyservice.key");
     ReflectionTestUtils.setField(userService, "supabaseUrl", "http://dummy.supabase.io");
   }
 

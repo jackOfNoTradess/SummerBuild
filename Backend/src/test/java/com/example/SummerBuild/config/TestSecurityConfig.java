@@ -33,7 +33,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @Profile("test")
 public class TestSecurityConfig {
 
-  @Value("${supabase.jwtSecret}")
+  @Value("${supabase.jwt.secret}")
   private String jwtSecret;
 
   @Bean
