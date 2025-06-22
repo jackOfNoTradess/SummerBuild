@@ -26,7 +26,7 @@ public class FileLoaderService {
   @Value("${supabase.auth.url}")
   private String supabaseUrl;
 
-  @Value("${supabase.serviceKey}")
+  @Value("${supabase.service.key}")
   private String supabaseApiKey;
 
   public FileLoaderService() {

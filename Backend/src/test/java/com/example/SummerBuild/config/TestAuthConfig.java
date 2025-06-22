@@ -24,7 +24,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 @Profile("test")
 public class TestAuthConfig {
 
-  @Value("${supabase.jwtSecret}")
+  @Value("${supabase.jwt.secret}")
   private String jwtSecret;
 
   @Bean
@@ -49,18 +49,18 @@ public class TestAuthConfig {
               String response =
                   String.format(
                       """
-                    {
-                        "access_token": "%s",
-                        "user": {
-                            "id": "%s",
-                            "email": "%s",
-                            "created_at": "2025-01-01T00:00:00.000000Z",
-                            "email_confirmed_at": "2025-01-01T00:00:00.000000Z",
-                            "user_metadata": {
-                                "display_name": "Test User"
-                            }
-                        }
-                    }""",
+                      {
+                          "access_token": "%s",
+                          "user": {
+                              "id": "%s",
+                              "email": "%s",
+                              "created_at": "2025-01-01T00:00:00.000000Z",
+                              "email_confirmed_at": "2025-01-01T00:00:00.000000Z",
+                              "user_metadata": {
+                                  "display_name": "Test User"
+                              }
+                          }
+                      }""",
                       token, uuid, email);
               return ResponseEntity.ok(response);
             });
@@ -75,13 +75,13 @@ public class TestAuthConfig {
               String response =
                   String.format(
                       """
-                    {
-                        "access_token": "%s",
-                        "user": {
-                            "id": "%s",
-                            "email": "%s"
-                        }
-                    }""",
+                      {
+                          "access_token": "%s",
+                          "user": {
+                              "id": "%s",
+                              "email": "%s"
+                          }
+                      }""",
                       token, uuid, email);
               return ResponseEntity.ok(response);
             });
