@@ -121,6 +121,9 @@ Our Website is hosted on https://summerbuild.pages.dev/login
 ## Component diagram
 ![Component diagram](./documentation/Component_diagram.png)
 
+## Database diagram
+![Database diagram](./documentation/database.png)
+
 # Deployment plan
 ## Frontend
 - Deployed on cloudflare pages
