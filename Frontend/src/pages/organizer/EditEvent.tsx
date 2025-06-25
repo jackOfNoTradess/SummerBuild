@@ -271,7 +271,7 @@ export function EditEvent() {
                   id="start_time"
                   name="start_time"
                   required
-                  value={formData.start_t_time.slice(0, 16)}
+                  value={formData.start_time.slice(0, 16)}
                   onChange={handleInputChange}
                   min={new Date().toISOString().slice(0, 16)}
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
