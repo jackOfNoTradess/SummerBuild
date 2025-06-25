@@ -115,12 +115,13 @@ public class ParticipatesController {
   }
 
   @GetMapping("/{id}")
-  @Operation(summary = "Get participation by ID", description = "Get a specific participation by its ID")
+  @Operation(
+      summary = "Get participation by ID",
+      description = "Get a specific participation by its ID")
   @ApiResponse(responseCode = "200", description = "Successfully retrieved participation")
   public ResponseEntity<ParticipatesDto> getParticipationById(
-          @Parameter(description = "Participation ID") @PathVariable UUID id) {
-      Optional<ParticipatesDto> participation = participatesService.getParticipationById(id);
-      return participation.map(ResponseEntity::ok)
-              .orElse(ResponseEntity.notFound().build());
+      @Parameter(description = "Participation ID") @PathVariable UUID id) {
+    Optional<ParticipatesDto> participation = participatesService.getParticipationById(id);
+    return participation.map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
   }
 }
