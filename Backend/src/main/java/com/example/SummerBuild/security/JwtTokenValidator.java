@@ -56,7 +56,8 @@ public class JwtTokenValidator {
             String header = new String(Base64.getDecoder().decode(parts[0]));
             String payload = new String(Base64.getDecoder().decode(parts[1]));
             logger.debug("Token header: {}", header);
-            logger.debug("Token payload (first 100 chars): {}",
+            logger.debug(
+                "Token payload (first 100 chars): {}",
                 payload.length() > 100 ? payload.substring(0, 100) + "..." : payload);
           }
         } catch (Exception ex) {
@@ -64,7 +65,8 @@ public class JwtTokenValidator {
         }
       }
 
-      Claims claims = Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token).getBody();
+      Claims claims =
+          Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token).getBody();
 
       logger.debug("Token validation successful for user: {}", claims.getSubject());
       return claims;
