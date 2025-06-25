@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Filter } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO, addMonths, subMonths, startOfWeek, endOfWeek } from 'date-fns';
-import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import type { Event } from '../types/database';
+import { supabase } from '../lib/supabase';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 import { Link } from 'react-router-dom';
 
@@ -18,6 +18,8 @@ const TAG_COLORS: Record<string, string> = {
   Technology: 'bg-gray-500',
   Arts: 'bg-yellow-500',
 };
+
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
 export function Calendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -37,31 +39,70 @@ export function Calendar() {
     try {
       setLoading(true);
       
-      // Get user's participations
-      const { data: participations, error: participationsError } = await supabase
-        .from('participates')
-        .select('event_id')
-        .eq('user_id', user!.id);
+      if (!user || !user.id) {
+        setEvents([]);
+        return;
+      }
 
-      if (participationsError) throw participationsError;
+      // Get the access token from the current session
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        throw new Error('No authentication token available');
+      }
+
+      // Get user's participations from backend
+      const participationsResponse = await fetch(`${BACKEND_URL}/api/participates/user/${user.id}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+      });
+
+      if (!participationsResponse.ok) {
+        throw new Error(`HTTP error! status: ${participationsResponse.status}`);
+      }
+
+      const participations = await participationsResponse.json();
 
       if (participations && participations.length > 0) {
-        const eventIds = participations.map(p => p.event_id);
-        
         // Get events for those participations
-        const { data: eventsData, error: eventsError } = await supabase
-          .from('events')
-          .select('*')
-          .in('id', eventIds)
-          .order('start_time', { ascending: true });
+        const eventPromises = participations.map(async (participation: any) => {
+          try {
+            const eventResponse = await fetch(`${BACKEND_URL}/api/events/${participation.eventId}`, {
+              method: 'GET',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session.access_token}`
+              },
+            });
 
-        if (eventsError) throw eventsError;
-        setEvents(eventsData || []);
+            if (eventResponse.ok) {
+              return await eventResponse.json();
+            } else {
+              console.warn(`Failed to fetch event ${participation.eventId}`);
+              return null;
+            }
+          } catch (error) {
+            console.error(`Error fetching event ${participation.eventId}:`, error);
+            return null;
+          }
+        });
+
+        // Wait for all event fetches to complete and filter out null values
+        const eventsData = await Promise.all(eventPromises);
+        const validEvents = eventsData.filter(event => event !== null);
+        
+        // Sort events by start time
+        validEvents.sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
+        
+        setEvents(validEvents);
       } else {
         setEvents([]);
       }
     } catch (error) {
       console.error('Error fetching user events:', error);
+      setEvents([]);
     } finally {
       setLoading(false);
     }

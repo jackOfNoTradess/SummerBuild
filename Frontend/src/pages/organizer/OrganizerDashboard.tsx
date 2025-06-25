@@ -2,10 +2,12 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, Calendar, Users, TrendingUp, Edit, Trash2, Settings, Eye, BarChart3 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
-import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { supabase } from '../../lib/supabase';
 import type { Event } from '../../types/database';
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
+
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
 export function OrganizerDashboard() {
   const { user } = useAuth();
@@ -17,6 +19,7 @@ export function OrganizerDashboard() {
     upcomingEvents: 0,
     pastEvents: 0,
   });
+  const [eventRegistrations, setEventRegistrations] = useState<Record<string, number>>({});
 
   useEffect(() => {
     if (user) {
@@ -28,41 +31,88 @@ export function OrganizerDashboard() {
     try {
       setLoading(true);
       
-      const { data, error } = await supabase
-        .from('events')
-        .select('*')
-        .eq('host_id', user!.id)
-        .order('start_time', { ascending: false });
+      if (!user?.id) {
+        setEvents([]);
+        return;
+      }
 
-      if (error) throw error;
+      // Get the access token from the current session
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        throw new Error('No authentication token available');
+      }
 
-      setEvents(data || []);
+      // Fetch events hosted by the organizer
+      const eventsResponse = await fetch(`${BACKEND_URL}/api/events/host/${user.id}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+      });
+
+      if (!eventsResponse.ok) {
+        throw new Error(`HTTP error! status: ${eventsResponse.status}`);
+      }
+
+      const eventsData = await eventsResponse.json();
+      setEvents(eventsData || []);
       
       // Calculate stats
       const now = new Date();
       
       // Get registration counts for all events
       let totalRegistrations = 0;
-      if (data && data.length > 0) {
-        const eventIds = data.map(event => event.id);
-        const { data: participations } = await supabase
-          .from('participates')
-          .select('event_id')
-          .in('event_id', eventIds);
-        totalRegistrations = participations?.length || 0;
+      const registrationCounts: Record<string, number> = {};
+      
+      if (eventsData && eventsData.length > 0) {
+        // Fetch registration counts for each event
+        const registrationPromises = eventsData.map(async (event: Event) => {
+          try {
+            const countResponse = await fetch(`${BACKEND_URL}/api/participates/count/event/${event.id}`, {
+              method: 'GET',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session.access_token}`
+              },
+            });
+
+            if (countResponse.ok) {
+              const count = await countResponse.json();
+              registrationCounts[event.id] = count;
+              totalRegistrations += count;
+            } else {
+              registrationCounts[event.id] = 0;
+            }
+          } catch (error) {
+            console.error(`Error fetching registrations for event ${event.id}:`, error);
+            registrationCounts[event.id] = 0;
+          }
+        });
+
+        await Promise.all(registrationPromises);
       }
       
-      const upcomingEvents = data?.filter(event => new Date(event.start_time) >= now).length || 0;
-      const pastEvents = data?.filter(event => new Date(event.start_time) < now).length || 0;
+      setEventRegistrations(registrationCounts);
+      
+      const upcomingEvents = eventsData?.filter((event: Event) => new Date(event.start_time) >= now).length || 0;
+      const pastEvents = eventsData?.filter((event: Event) => new Date(event.start_time) < now).length || 0;
 
       setStats({
-        totalEvents: data?.length || 0,
+        totalEvents: eventsData?.length || 0,
         totalRegistrations,
         upcomingEvents,
         pastEvents,
       });
     } catch (error) {
       console.error('Error fetching organizer events:', error);
+      setEvents([]);
+      setStats({
+        totalEvents: 0,
+        totalRegistrations: 0,
+        upcomingEvents: 0,
+        pastEvents: 0,
+      });
     } finally {
       setLoading(false);
     }
@@ -72,25 +122,30 @@ export function OrganizerDashboard() {
     const confirmed = window.confirm('Are you sure you want to delete this event? This action cannot be undone.');
     if (!confirmed) return;
 
+    // Get the access token from the current session
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        throw new Error('No authentication token available');
+      }
+
     try {
-      // First delete all participations for this event
-      const { error: participationsError } = await supabase
-        .from('participates')
-        .delete()
-        .eq('event_id', eventId);
+      // Delete the event (backend should handle cascade deletion of participations)
+      const response = await fetch(`${BACKEND_URL}/api/events/${eventId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+      });
 
-      if (participationsError) throw participationsError;
-
-      // Then delete the event
-      const { error: eventError } = await supabase
-        .from('events')
-        .delete()
-        .eq('id', eventId);
-
-      if (eventError) throw eventError;
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
 
       // Refresh the events list
-      fetchOrganizerEvents();
+      await fetchOrganizerEvents();
+      
+      alert('Event deleted successfully.');
     } catch (error) {
       console.error('Error deleting event:', error);
       alert('Failed to delete event. Please try again.');
@@ -196,7 +251,8 @@ export function OrganizerDashboard() {
           <div className="divide-y divide-gray-200">
             {events.map(event => {
               const isUpcoming = new Date(event.start_time) >= new Date();
-              const fillPercentage = event.capacity ? 0 : 0; // Will be calculated separately
+              const registrationCount = eventRegistrations[event.id] || 0;
+              const fillPercentage = event.capacity ? (registrationCount / event.capacity) * 100 : 0;
               
               return (
                 <div key={event.id} className="p-6 hover:bg-gray-50 transition-colors duration-200">
@@ -222,23 +278,25 @@ export function OrganizerDashboard() {
                         </div>
                         <div className="flex items-center space-x-1">
                           <Users className="w-4 h-4" />
-                          <span>0 / {event.capacity || 'Unlimited'} registered</span>
+                          <span>{registrationCount} / {event.capacity || 'Unlimited'} registered</span>
                         </div>
                       </div>
                       
                       {/* Registration Progress */}
-                      <div className="mt-3">
-                        <div className="flex items-center justify-between text-sm mb-1">
-                          <span className="text-gray-600">Registration Progress</span>
-                          <span className="text-gray-900 font-medium">{fillPercentage.toFixed(0)}%</span>
+                      {event.capacity && (
+                        <div className="mt-3">
+                          <div className="flex items-center justify-between text-sm mb-1">
+                            <span className="text-gray-600">Registration Progress</span>
+                            <span className="text-gray-900 font-medium">{fillPercentage.toFixed(0)}%</span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div
+                              className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                              style={{ width: `${Math.min(fillPercentage, 100)}%` }}
+                            ></div>
+                          </div>
                         </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div
-                            className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                            style={{ width: `${fillPercentage}%` }}
-                          ></div>
-                        </div>
-                      </div>
+                      )}
                     </div>
 
                     {/* Actions */}

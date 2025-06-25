@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Calendar, Users, Clock, FileText, Save } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import type { Event } from '../../types/database';
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
+import { supabase } from '../../lib/supabase';
 
 const EVENT_TAGS = ['Academic', 'Social', 'Sports', 'Career', 'Workshop', 'Cultural', 'Technology', 'Arts'];
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
 interface EventFormData {
   title: string;
@@ -44,32 +45,55 @@ export function EditEvent() {
     try {
       setLoading(true);
       
-      const { data, error } = await supabase
-        .from('events')
-        .select('*')
-        .eq('id', id)
-        .eq('host_id', user!.id)
-        .single();
+     // Get the access token from the current session
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        throw new Error('No authentication token available');
+      }
 
-      if (error) throw error;
+      // Fetch event details
+      const eventResponse = await fetch(`${BACKEND_URL}/api/events/${id}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+
+      if (!eventResponse.ok) {
+        throw new Error(`Failed to fetch event: ${eventResponse.status}`);
+      }
+
+      const eventData = await eventResponse.json();
       
-      setEvent(data);
+      // Check if the current user is the host
+      if (eventData.hostUuid !== user!.id) {
+        throw new Error('Unauthorized: You are not the host of this event');
+      }
+      
+      setEvent(eventData);
       setFormData({
-        title: data.title,
-        description: data.description || '',
-        start_time: data.start_time,
-        end_time: data.end_time,
-        capacity: data.capacity || 50,
-        tag: data.tag || [],
+        title: eventData.title,
+        description: eventData.description || '',
+        start_time: eventData.startTime,
+        end_time: eventData.endTime,
+        capacity: eventData.capacity || 50,
+        tag: eventData.tag || [],
       });
 
       // Get current registration count
-      const { data: participations } = await supabase
-        .from('participates')
-        .select('id')
-        .eq('event_id', data.id);
+      const participationsResponse = await fetch(`${BACKEND_URL}/api/participates/count/event/${eventData.id}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
       
-      setCurrentRegistrations(participations?.length || 0);
+      if (participationsResponse.ok) {
+        const count = await participationsResponse.json();
+        setCurrentRegistrations(count);
+      }
     } catch (error) {
       console.error('Error fetching event:', error);
       navigate('/organizer/dashboard');
@@ -115,15 +139,39 @@ export function EditEvent() {
     try {
       setSaving(true);
       
-      const { error } = await supabase
-        .from('events')
-        .update({
-          ...formData,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', event.id);
+      // Get the access token from the current session
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        throw new Error('No authentication token available');
+      }
+      
+      // Create FormData for multipart request (even without files)
+      const formDataToSend = new FormData();
+      
+      // Create event object matching your backend DTO structure
+      const eventDto = {
+        title: formData.title,
+        description: formData.description,
+        startTime: formData.start_time,
+        endTime: formData.end_time,
+        capacity: formData.capacity,
+        tag: formData.tag
+      };
+      
+      formDataToSend.append('event', JSON.stringify(eventDto));
+      
+      const response = await fetch(`${BACKEND_URL}/api/events/${event.id}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+          // Don't set Content-Type for FormData, let browser set it with boundary
+        },
+        body: formDataToSend
+      });
 
-      if (error) throw error;
+      if (!response.ok) {
+        throw new Error(`Failed to update event: ${response.status}`);
+      }
 
       navigate('/organizer/dashboard');
     } catch (error) {

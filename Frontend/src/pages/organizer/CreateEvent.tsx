@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Calendar, Users, Clock, FileText, Save } from 'lucide-react';
+import { ArrowLeft, Calendar, Users, Clock, FileText, Save, Upload } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
 
 const EVENT_TAGS = ['Academic', 'Social', 'Sports', 'Career', 'Workshop', 'Cultural', 'Technology', 'Arts'];
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
 interface EventFormData {
   title: string;
@@ -20,6 +21,7 @@ export function CreateEvent() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [files, setFiles] = useState<FileList | null>(null);
   const [formData, setFormData] = useState<EventFormData>({
     title: '',
     description: '',
@@ -46,6 +48,10 @@ export function CreateEvent() {
     }));
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFiles(e.target.files);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
@@ -66,17 +72,55 @@ export function CreateEvent() {
     try {
       setLoading(true);
       
-      const { error } = await supabase
-        .from('events')
-        .insert({
-          ...formData,
-          host_id: user.id,
-        })
-        .select()
-        .single();
+      // Get the access token from the current session
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        throw new Error('No authentication token available');
+      }
 
-      if (error) throw error;
+      // Create FormData for multipart/form-data request
+      const formDataToSend = new FormData();
+      
+      // Add event data as JSON
+      const eventData = {
+        title: formData.title,
+        description: formData.description,
+        startTime: formData.start_time,
+        endTime: formData.end_time,
+        capacity: formData.capacity,
+        tag: formData.tag
+      };
+      
+      formDataToSend.append('event', new Blob([JSON.stringify(eventData)], {
+        type: 'application/json'
+      }));
 
+      // Add files if any
+      if (files) {
+        Array.from(files).forEach(file => {
+          formDataToSend.append('files', file);
+        });
+      } else {
+        // Add an empty file list as the backend expects it
+        formDataToSend.append('files', new Blob([], { type: 'application/octet-stream' }));
+      }
+
+      const response = await fetch(`${BACKEND_URL}/api/events`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: formDataToSend,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to create event: ${response.status} ${errorText}`);
+      }
+
+      const createdEvent = await response.json();
+      console.log('Event created successfully:', createdEvent);
+      
       navigate('/organizer/dashboard');
     } catch (error) {
       console.error('Error creating event:', error);
@@ -222,6 +266,46 @@ export function CreateEvent() {
                 {tag}
               </button>
             ))}
+          </div>
+        </div>
+
+        {/* File Upload */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
+          <h2 className="text-xl font-semibold text-gray-900 mb-6">Event Images (Optional)</h2>
+          <p className="text-gray-600 mb-4">Upload images to showcase your event</p>
+          
+          <div className="relative">
+            <input
+              type="file"
+              id="files"
+              name="files"
+              multiple
+              accept="image/*"
+              onChange={handleFileChange}
+              className="hidden"
+            />
+            <label
+              htmlFor="files"
+              className="flex items-center justify-center w-full p-6 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors duration-200"
+            >
+              <div className="text-center">
+                <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                <p className="text-gray-600">Click to select images</p>
+                <p className="text-sm text-gray-500 mt-1">PNG, JPG, GIF up to 10MB each</p>
+              </div>
+            </label>
+            {files && files.length > 0 && (
+              <div className="mt-4">
+                <p className="text-sm font-medium text-gray-700 mb-2">Selected files:</p>
+                <ul className="space-y-1">
+                  {Array.from(files).map((file, index) => (
+                    <li key={index} className="text-sm text-gray-600">
+                      {file.name} ({(file.size / 1024 / 1024).toFixed(2)} MB)
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         </div>
 
