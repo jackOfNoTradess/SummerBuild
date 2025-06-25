@@ -30,7 +30,7 @@ public class JwtTokenValidator {
         logger.warn("JWT secret may be too short for HS256. Length: {} bytes", decoded.length);
       }
 
-      this.key = Keys.hmacShaKeyFor(decoded);
+      this.key = Keys.hmacShaKeyFor(java.util.Arrays.copyOf(decoded, 32));
       logger.info(
           "JWT validator initialized successfully with key algorithm: {}", key.getAlgorithm());
       logger.info("Key suitable for HS256: {}", decoded.length >= 32);
