@@ -4,6 +4,7 @@ import { CheckCircle, Calendar, Clock, User as UserIcon, Download, Mail, QrCode,
 import { format, parseISO } from 'date-fns';
 import QRCode from 'qrcode';
 import type { Event, Participation } from '../types/database';
+import { supabase } from '../lib/supabase';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -28,11 +29,18 @@ export function BookingConfirmation() {
     try {
       setLoading(true);
       
+      // Get the access token from the current session
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        throw new Error('No authentication token available');
+      }
+      
       // Fetch participation details directly using the new endpoint
       const participationResponse = await fetch(`${BACKEND_URL}/api/participates/${participationId}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
         },
       });
 
@@ -51,6 +59,7 @@ export function BookingConfirmation() {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
         },
       });
 

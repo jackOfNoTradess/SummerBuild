@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Search, Filter, Calendar as CalendarIcon, Users, Clock } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { Link } from 'react-router-dom';
+import { supabase } from '../lib/supabase';
 import type { Event } from '../types/database';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 
@@ -38,11 +39,18 @@ export function Dashboard() {
     try {
       setLoading(true);
       
+      // Get the access token from the current session
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        throw new Error('No authentication token available');
+      }
+      
       // Fetch events from backend
       const eventsResponse = await fetch(`${BACKEND_URL}/api/events`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
         },
       });
 
@@ -70,6 +78,7 @@ export function Dashboard() {
               method: 'GET',
               headers: {
                 'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session.access_token}`,
               },
             });
 

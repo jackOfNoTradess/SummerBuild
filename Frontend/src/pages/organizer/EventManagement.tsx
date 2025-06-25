@@ -29,29 +29,89 @@ export function EventManagement() {
     try {
       setLoading(true);
       
-      // Fetch event details
-      const { data: eventData, error: eventError } = await supabase
-        .from('events')
-        .select('*')
-        .eq('id', id)
-        .eq('host_id', user!.id)
-        .single();
+      // Get the access token from the current session
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        throw new Error('No authentication token available');
+      }
 
-      if (eventError) throw eventError;
+      // Fetch event details
+      const eventResponse = await fetch(`/api/events/${id}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+
+      if (!eventResponse.ok) {
+        throw new Error(`Failed to fetch event: ${eventResponse.status}`);
+      }
+
+      const eventData = await eventResponse.json();
+      
+      // Check if the current user is the host
+      if (eventData.hostUuid !== user!.id) {
+        throw new Error('Unauthorized: You are not the host of this event');
+      }
+      
       setEvent(eventData);
 
-      // Fetch participations with user data
-      const { data: participationsData, error: participationsError } = await supabase
-        .from('participates')
-        .select(`
-          *,
-          user:user_id (*)
-        `)
-        .eq('event_id', id)
-        .order('created_at', { ascending: false });
+      // Fetch participations for this event
+      const participationsResponse = await fetch(`/api/participates/event/${id}`, {
+        method: 'GET',
+        headers: {
+        'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
 
-      if (participationsError) throw participationsError;
-      setParticipations(participationsData as ParticipationWithUser[] || []);
+      if (!participationsResponse.ok) {
+        throw new Error(`Failed to fetch participations: ${participationsResponse.status}`);
+      }
+
+      const participationsData = await participationsResponse.json();
+      
+      // The backend returns ParticipatesDto objects, so we need to fetch user details for each
+      const participationsWithUsers = await Promise.all(
+        participationsData.map(async (participation: any) => {
+          try {
+            
+
+            const userResponse = await fetch(`/api/users/${participation.userId}`, {
+              method: 'GET',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session.access_token}`
+              }
+            });
+            
+            if (userResponse.ok) {
+              const userData = await userResponse.text(); // Backend returns string response
+              // Parse the JSON string response from Supabase
+              const userJson = JSON.parse(userData);
+              return {
+                ...participation,
+                user: userJson
+              };
+            } else {
+              // If user fetch fails, return participation with minimal user info
+              return {
+                ...participation,
+                user: { id: participation.userId }
+              };
+            }
+          } catch (error) {
+            console.error('Error fetching user data:', error);
+            return {
+              ...participation,
+              user: { id: participation.userId }
+            };
+          }
+        })
+      );
+
+      setParticipations(participationsWithUsers);
     } catch (error) {
       console.error('Error fetching event data:', error);
     } finally {

@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Filter } from 'luc
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO, addMonths, subMonths, startOfWeek, endOfWeek } from 'date-fns';
 import { useAuth } from '../contexts/AuthContext';
 import type { Event } from '../types/database';
+import { supabase } from '../lib/supabase';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 import { Link } from 'react-router-dom';
 
@@ -43,11 +44,18 @@ export function Calendar() {
         return;
       }
 
+      // Get the access token from the current session
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        throw new Error('No authentication token available');
+      }
+
       // Get user's participations from backend
       const participationsResponse = await fetch(`${BACKEND_URL}/api/participates/user/${user.id}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
         },
       });
 
@@ -65,6 +73,7 @@ export function Calendar() {
               method: 'GET',
               headers: {
                 'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session.access_token}`
               },
             });
 

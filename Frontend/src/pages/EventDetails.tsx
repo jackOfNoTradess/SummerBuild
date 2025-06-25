@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Calendar, Users, Clock, ArrowLeft } from 'lucide-react';
 import { format, parseISO, isBefore } from 'date-fns';
 import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../lib/supabase';
 import type { Event, Participation } from '../types/database';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 
@@ -38,12 +39,19 @@ export function EventDetails() {
   const fetchEventDetails = async () => {
     try {
       setLoading(true);
+
+      // Get the access token from the current session
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        throw new Error('No authentication token available');
+      }
       
       // Fetch event details
       const eventResponse = await fetch(`${BACKEND_URL}/api/events/${id}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
         },
       });
 
@@ -59,6 +67,7 @@ export function EventDetails() {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
         },
       });
 
@@ -76,6 +85,7 @@ export function EventDetails() {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`
           },
         });
 
@@ -111,12 +121,19 @@ export function EventDetails() {
 
     try {
       setActionLoading(true);
+
+      // Get the access token from the current session
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        throw new Error('No authentication token available');
+      }
       
       // Create participation
       const response = await fetch(`${BACKEND_URL}/api/participates/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
         },
         body: JSON.stringify({
           userId: user.id,
@@ -148,12 +165,19 @@ export function EventDetails() {
 
     try {
       setActionLoading(true);
+
+      // Get the access token from the current session
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        throw new Error('No authentication token available');
+      }
       
       // Delete participation
       const response = await fetch(`${BACKEND_URL}/api/participates/unregister`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
         },
         body: JSON.stringify({
           userId: user.id,
