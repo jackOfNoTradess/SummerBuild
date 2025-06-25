@@ -19,7 +19,7 @@ public class JwtTokenValidator {
 
   public JwtTokenValidator(
       @Value("${supabase.jwt.secret}") String secret,
-      @Value("${supabase.auth.url:}") String supabaseUrl) {
+      @Value("${supabase.url:}") String supabaseUrl) {
     this.supabaseUrl = supabaseUrl;
     logger.info("Initializing JWT validator...");
     logger.info("Supabase URL: {}", supabaseUrl);
