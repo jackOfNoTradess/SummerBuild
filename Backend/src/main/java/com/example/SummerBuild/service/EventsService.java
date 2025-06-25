@@ -64,6 +64,11 @@ public class EventsService {
     // Validate input
     validateEventData(eventsDto);
 
+    // Ensure this is truly a new entity (no ID should be set for creation)
+    if (eventsDto.getId() != null) {
+      throw new InvalidDataException("ID should not be provided when creating a new event");
+    }
+
     // Set the host UUID (from authenticated user)
     eventsDto.setHostUuid(hostUuid);
 

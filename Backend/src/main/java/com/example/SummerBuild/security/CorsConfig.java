@@ -11,9 +11,8 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 @Configuration
 public class CorsConfig {
 
-  @Value(
-      "${cors.allowed-origins:http://localhost:5173,http://localhost:3000,https://localhost:5173,https://localhost:3000}")
-  private String allowedOrigins;
+    @Value("${cors.allowed-origins}")
+    private String allowedOrigins;
 
   @Bean
   public CorsConfigurationSource corsConfigurationSource() {
@@ -26,17 +25,19 @@ public class CorsConfig {
             "https://localhost:*",
             "http://127.0.0.1:*",
             "https://127.0.0.1:*",
-            "https://summerbuild.pages.dev"));
-
-    // Allow all HTTP methods
-    configuration.setAllowedMethods(
-        Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
-
-    // Allow common headers
-    configuration.setAllowedHeaders(
-        Arrays.asList(
-            "Authorization",
-            "Content-Type",
+            "http://summerbuild.pages.dev",
+            "https://summerbuild.pages.dev"
+        ));
+        
+        // Allow all HTTP methods
+        configuration.setAllowedMethods(Arrays.asList(
+            "GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"
+        ));
+        
+        // Allow common headers
+        configuration.setAllowedHeaders(Arrays.asList(
+            "Authorization", 
+            "Content-Type", 
             "X-Requested-With",
             "Accept",
             "Origin",

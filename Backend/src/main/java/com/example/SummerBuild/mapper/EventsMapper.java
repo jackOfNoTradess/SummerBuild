@@ -37,7 +37,10 @@ public class EventsMapper implements GenericMapper<Events, EventsDto> {
     }
 
     Events entity = new Events();
-    entity.setId(dto.getId() != null ? dto.getId() : UUID.randomUUID());
+    // Only set ID if it exists (for updates), let JPA generate it for new entities
+    if (dto.getId() != null) {
+      entity.setId(dto.getId());
+    }
     entity.setTitle(dto.getTitle());
     entity.setHostId(dto.getHostUuid());
     entity.setCapacity(dto.getCapacity());
