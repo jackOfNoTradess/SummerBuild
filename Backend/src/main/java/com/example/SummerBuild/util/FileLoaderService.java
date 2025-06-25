@@ -37,10 +37,16 @@ public class FileLoaderService {
   public String uploadFile(List<MultipartFile> files, UUID eventUuid, UUID hostUuid) {
     logger.info("Starting file upload for event: {}", eventUuid);
 
+    // Handle null or empty file list
+    if (files == null || files.isEmpty()) {
+      logger.info("No files provided for upload to event: {}", eventUuid);
+      return "Files uploaded successfully";
+    }
+
     for (MultipartFile file : files) {
       if (file.isEmpty()) {
         logger.error("Failed to upload file: File is empty");
-        return null;
+        return "Upload failed: One or more files are empty";
       }
 
       String fileName = file.getOriginalFilename();

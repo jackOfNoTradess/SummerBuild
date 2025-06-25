@@ -54,7 +54,7 @@ public class EventsController {
                 @Encoding(name = "files", contentType = MediaType.APPLICATION_OCTET_STREAM_VALUE)
               }))
   public ResponseEntity<EventsDto> createEvent(
-      @RequestPart(value = "files") List<MultipartFile> files,
+      @RequestPart(value = "files", required = false) List<MultipartFile> files,
       @Valid @RequestPart(value = "event") EventsDto eventsDto,
       Authentication authentication) {
 
@@ -71,14 +71,19 @@ public class EventsController {
 
     UUID eventUuid = createdEvent.getId();
 
-    logger.info("inserting images for event into bucket: {}", eventUuid);
-    String serverReply = fileLoaderService.uploadFile(files, eventUuid, hostUuid);
-    if (serverReply == null || !serverReply.equals("Files uploaded successfully")) {
-      logger.error("File upload failed for event: {}. Server response: {}", eventUuid, serverReply);
-      logger.error("File upload failed: {}", serverReply != null ? serverReply : "Unknown error");
+    // Only upload files if they are provided and not empty
+    if (files != null && !files.isEmpty()) {
+      logger.info("inserting images for event into bucket: {}", eventUuid);
+      String serverReply = fileLoaderService.uploadFile(files, eventUuid, hostUuid);
+      if (serverReply == null || !serverReply.equals("Files uploaded successfully")) {
+        logger.error("File upload failed for event: {}. Server response: {}", eventUuid, serverReply);
+        logger.error("File upload failed: {}", serverReply != null ? serverReply : "Unknown error");
 
-      // look at logs for more details cause i cant return a string here
-      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        // look at logs for more details cause i cant return a string here
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+      }
+    } else {
+      logger.info("No files provided for event: {}", eventUuid);
     }
 
     return ResponseEntity.status(HttpStatus.CREATED).body(createdEvent);

@@ -95,14 +95,11 @@ export function CreateEvent() {
         type: 'application/json'
       }));
 
-      // Add files if any
-      if (files) {
+      // Add files if any are selected
+      if (files && files.length > 0) {
         Array.from(files).forEach(file => {
           formDataToSend.append('files', file);
         });
-      } else {
-        // Add an empty file list as the backend expects it
-        formDataToSend.append('files', new Blob([], { type: 'application/octet-stream' }));
       }
 
       const response = await fetch(`${BACKEND_URL}/api/events`, {
