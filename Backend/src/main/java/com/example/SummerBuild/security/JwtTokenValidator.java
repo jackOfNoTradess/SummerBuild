@@ -19,7 +19,7 @@ public class JwtTokenValidator {
   public JwtTokenValidator(@Value("${supabase.jwt.secret}") String secret) {
     logger.info("Initializing JWT validator...");
     logger.info("JWT secret length: {}", secret != null ? secret.length() : "null");
-
+    logger.info("JWT secret: {}", secret);
     try {
       byte[] decoded = Base64.getDecoder().decode(secret);
 
