@@ -17,7 +17,8 @@ public class JwtTokenValidator {
   private static final Logger logger = LoggerFactory.getLogger(JwtTokenValidator.class);
   private final String supabaseUrl;
 
-  public JwtTokenValidator(@Value("${supabase.jwt.secret}") String secret,
+  public JwtTokenValidator(
+      @Value("${supabase.jwt.secret}") String secret,
       @Value("${supabase.auth.url:}") String supabaseUrl) {
     this.supabaseUrl = supabaseUrl;
     logger.info("Initializing JWT validator...");
@@ -26,7 +27,8 @@ public class JwtTokenValidator {
 
     // Only log first/last few chars of secret for security
     if (secret != null && secret.length() > 10) {
-      logger.info("JWT secret (masked): {}...{}",
+      logger.info(
+          "JWT secret (masked): {}...{}",
           secret.substring(0, 5),
           secret.substring(secret.length() - 5));
     }
@@ -43,7 +45,8 @@ public class JwtTokenValidator {
       }
 
       this.key = Keys.hmacShaKeyFor(java.util.Arrays.copyOf(decoded, 32));
-      logger.info("JWT validator initialized successfully with key algorithm: {}", key.getAlgorithm());
+      logger.info(
+          "JWT validator initialized successfully with key algorithm: {}", key.getAlgorithm());
       logger.info("Key suitable for HS256: {}", decoded.length >= 32);
 
     } catch (Exception e) {
@@ -67,7 +70,8 @@ public class JwtTokenValidator {
             String header = new String(Base64.getDecoder().decode(parts[0]));
             String payload = new String(Base64.getDecoder().decode(parts[1]));
             logger.debug("Token header: {}", header);
-            logger.debug("Token payload (first 200 chars): {}",
+            logger.debug(
+                "Token payload (first 200 chars): {}",
                 payload.length() > 200 ? payload.substring(0, 200) + "..." : payload);
 
             // Extract and log the issuer from payload for verification
@@ -80,7 +84,10 @@ public class JwtTokenValidator {
                 logger.debug("Expected Supabase URL: {}", supabaseUrl);
 
                 if (!issuer.startsWith(supabaseUrl) && !supabaseUrl.isEmpty()) {
-                  logger.warn("Token issuer '{}' doesn't match configured Supabase URL '{}'", issuer, supabaseUrl);
+                  logger.warn(
+                      "Token issuer '{}' doesn't match configured Supabase URL '{}'",
+                      issuer,
+                      supabaseUrl);
                 }
               }
             }
@@ -90,7 +97,8 @@ public class JwtTokenValidator {
         }
       }
 
-      Claims claims = Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token).getBody();
+      Claims claims =
+          Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token).getBody();
 
       logger.debug("Token validation successful for user: {}", claims.getSubject());
       logger.debug("Token issuer: {}", claims.getIssuer());
@@ -121,9 +129,11 @@ public class JwtTokenValidator {
               }
             }
 
-            logger.error("SOLUTION 1: Verify your Supabase JWT secret matches the one used to sign this token");
+            logger.error(
+                "SOLUTION 1: Verify your Supabase JWT secret matches the one used to sign this token");
             logger.error("SOLUTION 2: Check if the token issuer matches your Supabase project URL");
-            logger.error("SOLUTION 3: Verify you're using the JWT Secret (not anon/service_role key)");
+            logger.error(
+                "SOLUTION 3: Verify you're using the JWT Secret (not anon/service_role key)");
           }
         } catch (Exception ex) {
           logger.debug("Could not decode token header", ex);
