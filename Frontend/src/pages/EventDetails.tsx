@@ -224,7 +224,7 @@ export function EventDetails() {
   }
 
   const isEventFull = event.capacity ? participationCount >= event.capacity : false;
-  const isEventPast = isBefore(parseISO(event.start_time), new Date());
+  const isEventPast = isBefore(parseISO((event as any).startTime), new Date());
   const canRegister = !isEventFull && !isEventPast && !participation && user;
 
   return (
@@ -295,10 +295,10 @@ export function EventDetails() {
                 <div>
                   <h3 className="font-semibold text-gray-900">Date & Time</h3>
                   <p className="text-gray-600">
-                    {format(parseISO(event.start_time), 'EEEE, MMMM d, yyyy')}
+                    {format(parseISO((event as any).startTime), 'EEEE, MMMM d, yyyy')}
                   </p>
                   <p className="text-gray-600">
-                    {format(parseISO(event.start_time), 'h:mm a')} - {format(parseISO(event.end_time), 'h:mm a')}
+                    {format(parseISO((event as any).startTime), 'h:mm a')} - {format(parseISO((event as any).endTime), 'h:mm a')}
                   </p>
                 </div>
               </div>

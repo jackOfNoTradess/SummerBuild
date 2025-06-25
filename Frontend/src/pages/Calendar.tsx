@@ -94,7 +94,7 @@ export function Calendar() {
         const validEvents = eventsData.filter(event => event !== null);
         
         // Sort events by start time
-        validEvents.sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
+        validEvents.sort((a, b) => new Date((a as any).startTime).getTime() - new Date((b as any).startTime).getTime());
         
         setEvents(validEvents);
       } else {
@@ -122,7 +122,7 @@ export function Calendar() {
 
   const getEventsForDate = (date: Date) => {
     return filteredEvents.filter(event => 
-      isSameDay(parseISO(event.start_time), date)
+      isSameDay(parseISO((event as any).startTime), date)
     );
   };
 
@@ -277,7 +277,7 @@ export function Calendar() {
                     {dayEvents.slice(0, 3).map(event => {
                       const primaryTag = event.tag?.[0];
                       const tagColor = primaryTag ? TAG_COLORS[primaryTag] || 'bg-gray-500' : 'bg-gray-500';
-                      const eventTime = format(parseISO(event.start_time), 'HH:mm');
+                      const eventTime = format(parseISO((event as any).startTime), 'HH:mm');
                       
                       return (
                         <Link

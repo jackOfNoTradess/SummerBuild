@@ -95,8 +95,8 @@ export function OrganizerDashboard() {
       
       setEventRegistrations(registrationCounts);
       
-      const upcomingEvents = eventsData?.filter((event: Event) => new Date(event.start_time) >= now).length || 0;
-      const pastEvents = eventsData?.filter((event: Event) => new Date(event.start_time) < now).length || 0;
+      const upcomingEvents = eventsData?.filter((event: any) => new Date(event.startTime) >= now).length || 0;
+      const pastEvents = eventsData?.filter((event: any) => new Date(event.startTime) < now).length || 0;
 
       setStats({
         totalEvents: eventsData?.length || 0,
@@ -250,7 +250,7 @@ export function OrganizerDashboard() {
         ) : (
           <div className="divide-y divide-gray-200">
             {events.map(event => {
-              const isUpcoming = new Date(event.start_time) >= new Date();
+              const isUpcoming = new Date((event as any).startTime) >= new Date();
               const registrationCount = eventRegistrations[event.id] || 0;
               const fillPercentage = event.capacity ? (registrationCount / event.capacity) * 100 : 0;
               
@@ -274,7 +274,7 @@ export function OrganizerDashboard() {
                       <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500">
                         <div className="flex items-center space-x-1">
                           <Calendar className="w-4 h-4" />
-                          <span>{format(parseISO(event.start_time), 'MMM d, yyyy')}</span>
+                          <span>{format(parseISO((event as any).startTime), 'MMM d, yyyy')}</span>
                         </div>
                         <div className="flex items-center space-x-1">
                           <Users className="w-4 h-4" />

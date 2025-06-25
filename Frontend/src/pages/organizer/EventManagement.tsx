@@ -162,7 +162,7 @@ export function EventManagement() {
   }
 
   const attendanceRate = event.capacity ? (participations.length / event.capacity) * 100 : 0;
-  const isUpcoming = new Date(event.start_time) >= new Date();
+  const isUpcoming = new Date((event as any).startTime) >= new Date();
 
   return (
     <div className="max-w-6xl mx-auto space-y-8">
@@ -262,10 +262,10 @@ export function EventManagement() {
                       <Calendar className="w-5 h-5 text-blue-600 mt-1" />
                       <div>
                         <div className="font-medium text-gray-900">
-                          {format(parseISO(event.start_time), 'EEEE, MMMM d, yyyy')}
+                          {format(parseISO((event as any).startTime), 'EEEE, MMMM d, yyyy')}
                         </div>
                         <div className="text-sm text-gray-500">
-                          {format(parseISO(event.start_time), 'h:mm a')} - {format(parseISO(event.end_time), 'h:mm a')}
+                          {format(parseISO((event as any).startTime), 'h:mm a')} - {format(parseISO((event as any).endTime), 'h:mm a')}
                         </div>
                       </div>
                     </div>

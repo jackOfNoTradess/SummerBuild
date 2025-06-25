@@ -87,7 +87,7 @@ export function EventsManagement() {
                          (event.description && event.description.toLowerCase().includes(searchQuery.toLowerCase()));
     
     const now = new Date();
-    const eventDate = new Date(event.start_time);
+    const eventDate = new Date((event as any).startTime);
     const isUpcoming = eventDate >= now;
     const isPast = eventDate < now;
     
@@ -101,7 +101,7 @@ export function EventsManagement() {
 
   const getEventStatusBadge = (event: EventWithParticipationCount) => {
     const now = new Date();
-    const eventDate = new Date(event.start_time);
+    const eventDate = new Date((event as any).startTime);
     const isUpcoming = eventDate >= now;
     const isFull = event.capacity ? event.participationCount >= event.capacity : false;
     
@@ -235,10 +235,10 @@ export function EventsManagement() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">
-                        {format(parseISO(event.start_time), 'MMM d, yyyy')}
+                        {format(parseISO((event as any).startTime || event.start_time), 'MMM d, yyyy')}
                       </div>
                       <div className="text-sm text-gray-500">
-                        {format(parseISO(event.start_time), 'h:mm a')} - {format(parseISO(event.end_time), 'h:mm a')}
+                        {format(parseISO((event as any).startTime || event.start_time), 'h:mm a')} - {format(parseISO((event as any).endTime || event.end_time), 'h:mm a')}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">

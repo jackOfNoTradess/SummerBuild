@@ -92,3 +92,20 @@ export interface Database {
 export type User = Database['public']['Tables']['users']['Row'];
 export type Event = Database['public']['Tables']['events']['Row'];
 export type Participation = Database['public']['Tables']['participates']['Row'];
+
+// API Response types (with camelCase field names from backend)
+export interface ApiEventResponse {
+  id: string;
+  title: string;
+  hostUuid: string;
+  capacity: number | null;
+  startTime: string;
+  endTime: string;
+  description: string | null;
+  tags: string[] | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Utility type that handles both DB and API formats
+export type EventData = Event | ApiEventResponse;
