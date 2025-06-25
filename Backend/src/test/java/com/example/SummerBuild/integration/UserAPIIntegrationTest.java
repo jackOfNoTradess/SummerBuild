@@ -41,7 +41,7 @@ public class UserAPIIntegrationTest {
   @MockBean private UserService userService;
   @Autowired private UserMapper userMapper;
 
-  @Value("${supabase.jwtSecret}")
+  @Value("${supabase.jwt.secret}")
   private String jwtSecret;
 
   private String baseUrl;

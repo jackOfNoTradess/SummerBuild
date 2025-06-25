@@ -28,7 +28,7 @@ public class SupabaseAuthService {
   @Value("${supabase.auth.url}")
   private String supabaseUrl;
 
-  @Value("${supabase.anonKey}")
+  @Value("${supabase.anon.key}")
   private String supabaseApiKey;
 
   public SupabaseAuthService() {

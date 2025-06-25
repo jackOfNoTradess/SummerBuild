@@ -28,7 +28,7 @@ public class UserService {
   private final UserMapper userMapper;
   private static final Logger logger = LoggerFactory.getLogger(UserService.class);
 
-  @Value("${supabase.serviceKey}")
+  @Value("${supabase.service.key}")
   private String serviceKey;
 
   @Value("${supabase.auth.url}")
