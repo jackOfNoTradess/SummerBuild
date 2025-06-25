@@ -19,14 +19,21 @@ public class JwtTokenValidator {
   public JwtTokenValidator(@Value("${supabase.jwt.secret}") String secret) {
     logger.info("Initializing JWT validator...");
     logger.info("JWT secret length: {}", secret != null ? secret.length() : "null");
-    logger.info(
-        "JWT secret hash: {}", secret != null ? Integer.toHexString(secret.hashCode()) : "null");
-
+    
     try {
       byte[] decoded = Base64.getDecoder().decode(secret);
+      
+      // Use HMAC-SHA256 for Supabase compatibility (not SHA512)
+      // Supabase uses HS256 algorithm, so we need to ensure minimum key length
+      if (decoded.length < 32) {
+        // If key is too short for HS256, pad it or throw error
+        logger.warn("JWT secret may be too short for HS256. Length: {} bytes", decoded.length);
+      }
+      
       this.key = Keys.hmacShaKeyFor(decoded);
-      logger.info(
-          "JWT validator initialized successfully with key algorithm: {}", key.getAlgorithm());
+      logger.info("JWT validator initialized successfully with key algorithm: {}", key.getAlgorithm());
+      logger.info("Key suitable for HS256: {}", decoded.length >= 32);
+      
     } catch (Exception e) {
       logger.error("Failed to initialize JWT validator", e);
       throw new RuntimeException("JWT configuration error", e);
@@ -40,8 +47,11 @@ public class JwtTokenValidator {
         logger.debug("Validating token header: {}", token.substring(0, 50) + "...");
       }
 
-      Claims claims =
-          Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token).getBody();
+      Claims claims = Jwts.parserBuilder()
+          .setSigningKey(key)
+          .build()
+          .parseClaimsJws(token)
+          .getBody();
 
       logger.debug("Token validation successful for user: {}", claims.getSubject());
       return claims;
@@ -58,6 +68,7 @@ public class JwtTokenValidator {
           if (parts.length >= 2) {
             String header = new String(Base64.getDecoder().decode(parts[0]));
             logger.error("Token header: {}", header);
+            logger.error("SOLUTION: Verify your Supabase JWT secret matches the one used to sign this token");
           }
         } catch (Exception ex) {
           logger.debug("Could not decode token header", ex);
