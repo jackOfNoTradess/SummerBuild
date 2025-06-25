@@ -17,6 +17,11 @@ public class JwtTokenValidator {
   private static final Logger logger = LoggerFactory.getLogger(JwtTokenValidator.class);
 
   public JwtTokenValidator(@Value("${supabase.jwt.secret}") String secret) {
+    logger.info("JWT secret length: {}", secret != null ? secret.length() : "null");
+    logger.info(
+        "JWT secret starts with: {}",
+        secret != null && secret.length() > 10 ? secret.substring(0, 10) + "..." : "invalid");
+
     byte[] decoded = Base64.getDecoder().decode(secret);
     this.key = Keys.hmacShaKeyFor(decoded);
   }
