@@ -1,17 +1,19 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { CheckCircle, Calendar, Clock, User as UserIcon, Download, Mail, QrCode } from 'lucide-react';
+import { CheckCircle, Calendar, Clock, User as UserIcon, Download, Mail, QrCode, Shield } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import QRCode from 'qrcode';
-import { supabase } from '../lib/supabase';
-import type { Event, User, Participation } from '../types/database';
+import type { Event, Participation } from '../types/database';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
+import { useAuth } from '../contexts/AuthContext';
+
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
 export function BookingConfirmation() {
   const { participationId } = useParams<{ participationId: string }>();
+  const { user, profile } = useAuth();
   const [participation, setParticipation] = useState<Participation | null>(null);
   const [event, setEvent] = useState<Event | null>(null);
-  const [user, setUser] = useState<User | null>(null);
   const [qrCodeUrl, setQrCodeUrl] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -26,42 +28,46 @@ export function BookingConfirmation() {
     try {
       setLoading(true);
       
-      // Fetch participation details
-      const { data: participationData, error: participationError } = await supabase
-        .from('participates')
-        .select('*')
-        .eq('id', participationId)
-        .single();
+      // Fetch participation details directly using the new endpoint
+      const participationResponse = await fetch(`${BACKEND_URL}/api/participates/${participationId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
 
-      if (participationError) throw participationError;
+      if (!participationResponse.ok) {
+        if (participationResponse.status === 404) {
+          throw new Error('Participation not found');
+        }
+        throw new Error(`HTTP error! status: ${participationResponse.status}`);
+      }
+
+      const participationData = await participationResponse.json();
       setParticipation(participationData);
 
       // Fetch event details
-      const { data: eventData, error: eventError } = await supabase
-        .from('events')
-        .select('*')
-        .eq('id', participationData.event_id)
-        .single();
+      const eventResponse = await fetch(`${BACKEND_URL}/api/events/${participationData.eventId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
 
-      if (eventError) throw eventError;
+      if (!eventResponse.ok) {
+        throw new Error(`Failed to fetch event details: ${eventResponse.status}`);
+      }
+
+      const eventData = await eventResponse.json();
       setEvent(eventData);
-
-      // Fetch user details
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', participationData.user_id)
-        .single();
-
-      if (userError) throw userError;
-      setUser(userData);
 
       // Generate QR code
       const qrData = JSON.stringify({
         participationId: participationData.id,
-        eventId: participationData.event_id,
-        userId: participationData.user_id,
+        eventId: participationData.eventId,
+        userId: participationData.userId,
         eventTitle: eventData.title,
+        timestamp: new Date().toISOString(),
       });
       
       const qrCodeDataUrl = await QRCode.toDataURL(qrData, {
@@ -76,7 +82,7 @@ export function BookingConfirmation() {
 
     } catch (error: any) {
       console.error('Error fetching participation details:', error);
-      setError('Participation not found or invalid participation ID.');
+      setError(error.message || 'Failed to load participation details.');
     } finally {
       setLoading(false);
     }
@@ -91,6 +97,30 @@ export function BookingConfirmation() {
     link.click();
   };
 
+  const getRoleBadgeColor = (role: string) => {
+    switch (role) {
+      case 'ADMIN':
+        return 'bg-red-100 text-red-800';
+      case 'ORGANIZER':
+        return 'bg-purple-100 text-purple-800';
+      default:
+        return 'bg-blue-100 text-blue-800';
+    }
+  };
+
+  const getGenderDisplay = (gender: string) => {
+    switch (gender) {
+      case 'MALE':
+        return 'Male';
+      case 'FEMALE':
+        return 'Female';
+      case 'OTHERS':
+        return 'Other';
+      default:
+        return gender;
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -99,7 +129,7 @@ export function BookingConfirmation() {
     );
   }
 
-  if (error || !participation || !event || !user) {
+  if (error || !participation || !event) {
     return (
       <div className="max-w-2xl mx-auto text-center py-12">
         <div className="bg-red-50 border border-red-200 rounded-lg p-8">
@@ -110,6 +140,23 @@ export function BookingConfirmation() {
             className="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors duration-200"
           >
             Back to Events
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user || !profile) {
+    return (
+      <div className="max-w-2xl mx-auto text-center py-12">
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-8">
+          <h1 className="text-2xl font-bold text-yellow-900 mb-4">Authentication Required</h1>
+          <p className="text-yellow-700 mb-6">Please log in to view your registration details.</p>
+          <Link
+            to="/login"
+            className="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors duration-200"
+          >
+            Log In
           </Link>
         </div>
       </div>
@@ -135,7 +182,7 @@ export function BookingConfirmation() {
           <div className="space-y-4">
             <div className="flex items-center justify-between py-3 border-b border-gray-100">
               <span className="text-gray-600">Registration ID</span>
-              <span className="font-mono font-semibold text-gray-900">{participation.id}</span>
+              <span className="font-mono font-semibold text-gray-900 text-sm">{participation.id}</span>
             </div>
             
             <div className="flex items-center justify-between py-3 border-b border-gray-100">
@@ -148,7 +195,7 @@ export function BookingConfirmation() {
             <div className="flex items-center justify-between py-3 border-b border-gray-100">
               <span className="text-gray-600">Registered On</span>
               <span className="font-semibold text-gray-900">
-                {format(parseISO(participation.created_at), 'MMM d, yyyy')}
+                {participation.created_at ? format(parseISO(participation.created_at), 'MMM d, yyyy') : 'Recently'}
               </span>
             </div>
           </div>
@@ -158,12 +205,25 @@ export function BookingConfirmation() {
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Attendee Information</h3>
             <div className="bg-gray-50 rounded-lg p-4">
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                  <UserIcon className="w-5 h-5 text-blue-600" />
+                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                  <UserIcon className="w-6 h-6 text-blue-600" />
                 </div>
-                <div>
-                  <div className="font-medium text-gray-900">User ID: {user.id}</div>
-                  <div className="text-sm text-gray-500">Role: {user.role}</div>
+                <div className="flex-1">
+                  <div className="font-medium text-gray-900">
+                    User {profile.id.slice(0, 8)}
+                  </div>
+                  <div className="text-sm text-gray-500 mb-2">
+                    ID: {profile.id}
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getRoleBadgeColor(profile.role)}`}>
+                      <Shield className="w-3 h-3 mr-1" />
+                      {profile.role}
+                    </span>
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                      {getGenderDisplay(profile.gender)}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -177,7 +237,9 @@ export function BookingConfirmation() {
           <div className="space-y-6">
             <div>
               <h3 className="font-semibold text-gray-900 text-lg mb-2">{event.title}</h3>
-              <p className="text-gray-600">{event.description}</p>
+              {event.description && (
+                <p className="text-gray-600">{event.description}</p>
+              )}
             </div>
 
             <div className="space-y-4">

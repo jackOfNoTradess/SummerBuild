@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Calendar, Users, Clock, ArrowLeft } from 'lucide-react';
 import { format, parseISO, isBefore } from 'date-fns';
-import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import type { Event, Participation } from '../types/database';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
@@ -17,6 +16,8 @@ const TAG_COLORS: Record<string, string> = {
   Technology: 'bg-gray-100 text-gray-800',
   Arts: 'bg-yellow-100 text-yellow-800',
 };
+
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
 export function EventDetails() {
   const { id } = useParams<{ id: string }>();
@@ -39,60 +40,93 @@ export function EventDetails() {
       setLoading(true);
       
       // Fetch event details
-      const { data: eventData, error: eventError } = await supabase
-        .from('events')
-        .select('*')
-        .eq('id', id)
-        .single();
+      const eventResponse = await fetch(`${BACKEND_URL}/api/events/${id}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
 
-      if (eventError) throw eventError;
+      if (!eventResponse.ok) {
+        throw new Error(`HTTP error! status: ${eventResponse.status}`);
+      }
+
+      const eventData = await eventResponse.json();
       setEvent(eventData);
 
       // Get participation count
-      const { count } = await supabase
-        .from('participates')
-        .select('id', { count: 'exact' })
-        .eq('event_id', id);
-      
-      setParticipationCount(count || 0);
+      const countResponse = await fetch(`${BACKEND_URL}/api/participates/count/event/${id}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (countResponse.ok) {
+        const count = await countResponse.json();
+        setParticipationCount(count);
+      } else {
+        console.warn('Failed to fetch participation count');
+        setParticipationCount(0);
+      }
 
       // Check if user has registered for this event
-      if (user) {
-        const { data: participationData, error: participationError } = await supabase
-          .from('participates')
-          .select('*')
-          .eq('event_id', id)
-          .eq('user_id', user.id)
-          .maybeSingle();
+      if (user && user.id) {
+        const participationResponse = await fetch(`${BACKEND_URL}/api/participates/check?userId=${user.id}&eventId=${id}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
 
-        if (participationError && participationError.code !== 'PGRST116') {
-          throw participationError;
+        if (participationResponse.ok) {
+          const isParticipating = await participationResponse.json();
+          if (isParticipating) {
+            // Simple participation object - just need to know they're registered
+            setParticipation({
+              id: 'not in use',
+              event_id: id!,
+              user_id: user.id,
+              created_at: new Date().toISOString(), // not in use but part of response type
+              updated_at: new Date().toISOString(), // not in use but part of response type
+            });
+          } else {
+            setParticipation(null);
+          }
+        } else {
+          console.warn('Failed to check participation status');
+          setParticipation(null);
         }
-        
-        setParticipation(participationData);
       }
     } catch (error) {
       console.error('Error fetching event details:', error);
+      setEvent(null);
     } finally {
       setLoading(false);
     }
   };
 
   const handleRegisterEvent = async () => {
-    if (!user || !event) return;
+    if (!user || !event || !user.id) return;
 
     try {
       setActionLoading(true);
       
       // Create participation
-      const { error: participationError } = await supabase
-        .from('participates')
-        .insert({
-          event_id: event.id,
-          user_id: user.id,
-        });
+      const response = await fetch(`${BACKEND_URL}/api/participates/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: user.id,
+          eventId: event.id,
+        }),
+      });
 
-      if (participationError) throw participationError;
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
 
       // Refresh data
       await fetchEventDetails();
@@ -107,7 +141,7 @@ export function EventDetails() {
   };
 
   const handleCancelRegistration = async () => {
-    if (!participation || !event) return;
+    if (!participation || !event || !user?.id) return;
 
     const confirmed = window.confirm('Are you sure you want to cancel your registration?');
     if (!confirmed) return;
@@ -116,12 +150,20 @@ export function EventDetails() {
       setActionLoading(true);
       
       // Delete participation
-      const { error: participationError } = await supabase
-        .from('participates')
-        .delete()
-        .eq('id', participation.id);
+      const response = await fetch(`${BACKEND_URL}/api/participates/unregister`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: user.id,
+          eventId: event.id,
+        }),
+      });
 
-      if (participationError) throw participationError;
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
 
       // Refresh data
       await fetchEventDetails();
@@ -323,7 +365,7 @@ export function EventDetails() {
             </div>
           )}
 
-          {/* Registration Confirmation */}
+          {/* Registration Status - Simplified */}
           {participation && (
             <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
               <div className="flex items-center space-x-2">
@@ -332,9 +374,6 @@ export function EventDetails() {
                   You are registered for this event
                 </span>
               </div>
-              <p className="text-sm text-green-700 mt-1">
-                Registered on {format(parseISO(participation.created_at), 'MMM d, yyyy')}
-              </p>
             </div>
           )}
         </div>

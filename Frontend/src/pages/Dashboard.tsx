@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { Search, Filter, Calendar as CalendarIcon, Users, Clock } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { Link } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
 import type { Event } from '../types/database';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 
@@ -22,6 +21,8 @@ interface EventWithParticipationCount extends Event {
   participationCount: number;
 }
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+
 export function Dashboard() {
   const [events, setEvents] = useState<EventWithParticipationCount[]>([]);
   const [loading, setLoading] = useState(true);
@@ -36,32 +37,67 @@ export function Dashboard() {
   const fetchEvents = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('events')
-        .select('*')
-        .gte('start_time', new Date().toISOString())
-        .order('start_time', { ascending: true });
+      
+      // Fetch events from backend
+      const eventsResponse = await fetch(`${BACKEND_URL}/api/events`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
 
-      if (error) throw error;
+      if (!eventsResponse.ok) {
+        throw new Error(`HTTP error! status: ${eventsResponse.status}`);
+      }
+
+      const eventsData = await eventsResponse.json();
+
+      // Filter events to only show future events
+      const futureEvents = eventsData.filter((event: Event) => 
+        new Date(event.start_time) >= new Date()
+      );
+
+      // Sort events by start time
+      const sortedEvents = futureEvents.sort((a: Event, b: Event) => 
+        new Date(a.start_time).getTime() - new Date(b.start_time).getTime()
+      );
 
       // Fetch participation counts for each event
       const eventsWithCounts = await Promise.all(
-        (data || []).map(async (event) => {
-          const { count } = await supabase
-            .from('participates')
-            .select('id', { count: 'exact' })
-            .eq('event_id', event.id);
-          
-          return {
-            ...event,
-            participationCount: count || 0
-          };
+        sortedEvents.map(async (event: Event) => {
+          try {
+            const countResponse = await fetch(`${BACKEND_URL}/api/participates/count/event/${event.id}`, {
+              method: 'GET',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+            });
+
+            let participationCount = 0;
+            if (countResponse.ok) {
+              participationCount = await countResponse.json();
+            } else {
+              console.warn(`Failed to fetch participation count for event ${event.id}`);
+            }
+
+            return {
+              ...event,
+              participationCount
+            };
+          } catch (error) {
+            console.error(`Error fetching participation count for event ${event.id}:`, error);
+            return {
+              ...event,
+              participationCount: 0
+            };
+          }
         })
       );
 
       setEvents(eventsWithCounts);
     } catch (error) {
       console.error('Error fetching events:', error);
+      setEvents([]);
     } finally {
       setLoading(false);
     }

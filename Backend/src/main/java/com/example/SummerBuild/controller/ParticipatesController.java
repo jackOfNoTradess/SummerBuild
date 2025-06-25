@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -113,17 +114,13 @@ public class ParticipatesController {
     return ResponseEntity.ok(participations);
   }
 
-  // @GetMapping("/{id}")
-  // @Operation(summary = "Get participation by ID", description = "Get a specific participation by
-  // its ID")
-  // @ApiResponses(value = {
-  //     @ApiResponse(responseCode = "200", description = "Successfully retrieved participation"),
-  //     @ApiResponse(responseCode = "404", description = "Participation not found")
-  // })
-  // public ResponseEntity<ParticipatesDto> getParticipationById(
-  //         @Parameter(description = "Participation ID") @PathVariable UUID id) {
-  //     Optional<ParticipatesDto> participation = participatesService.getParticipationById(id);
-  //     return participation.map(ResponseEntity::ok)
-  //             .orElse(ResponseEntity.notFound().build());
-  // }
+  @GetMapping("/{id}")
+  @Operation(summary = "Get participation by ID", description = "Get a specific participation by its ID")
+  @ApiResponse(responseCode = "200", description = "Successfully retrieved participation")
+  public ResponseEntity<ParticipatesDto> getParticipationById(
+          @Parameter(description = "Participation ID") @PathVariable UUID id) {
+      Optional<ParticipatesDto> participation = participatesService.getParticipationById(id);
+      return participation.map(ResponseEntity::ok)
+              .orElse(ResponseEntity.notFound().build());
+  }
 }
