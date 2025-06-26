@@ -58,8 +58,14 @@ export function CreateEvent() {
 
     // Validation
     if (!formData.title || !formData.description || !formData.start_time || 
-        !formData.end_time || formData.capacity <= 0 || formData.tag.length === 0) {
+        !formData.end_time || formData.capacity <= 0) {
       alert('Please fill in all required fields.');
+      return;
+    }
+
+    // Ensure at least one tag is selected
+    if (formData.tag.length === 0) {
+      alert('Please select at least one event tag.');
       return;
     }
 
@@ -81,14 +87,14 @@ export function CreateEvent() {
       // Create FormData for multipart/form-data request
       const formDataToSend = new FormData();
       
-      // Add event data as JSON
+      // Add event data as JSON - ensure tags array is never empty
       const eventData = {
         title: formData.title,
         description: formData.description,
         startTime: formData.start_time,
         endTime: formData.end_time,
         capacity: formData.capacity,
-        tag: formData.tag
+        tags: formData.tag // Backend expects 'tags' not 'tag'
       };
       
       formDataToSend.append('event', new Blob([JSON.stringify(eventData)], {

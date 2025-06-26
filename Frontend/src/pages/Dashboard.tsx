@@ -3,7 +3,7 @@ import { Search, Filter, Calendar as CalendarIcon, Users, Clock } from 'lucide-r
 import { format, parseISO } from 'date-fns';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import type { Event } from '../types/database';
+import type { ApiEventResponse } from '../types/database';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 
 const EVENT_TAGS = ['Academic', 'Social', 'Sports', 'Career', 'Workshop', 'Cultural', 'Technology', 'Arts'];
@@ -18,7 +18,7 @@ const TAG_COLORS: Record<string, string> = {
   Arts: 'bg-yellow-100 text-yellow-800',
 };
 
-interface EventWithParticipationCount extends Event {
+interface EventWithParticipationCount extends ApiEventResponse {
   participationCount: number;
 }
 
@@ -60,19 +60,19 @@ export function Dashboard() {
 
       const eventsData = await eventsResponse.json();
 
-      // Filter events to only show future events
-      const futureEvents = eventsData.filter((event: Event) => 
-        new Date(event.start_time) >= new Date()
-      );
+      // // Filter events to only show future events
+      // const futureEvents = eventsData.filter((event: Event) => 
+      //   new Date(event.start_time) >= new Date()
+      // );
 
       // Sort events by start time
-      const sortedEvents = futureEvents.sort((a: Event, b: Event) => 
-        new Date(a.start_time).getTime() - new Date(b.start_time).getTime()
+      const sortedEvents = eventsData.sort((a: ApiEventResponse, b: ApiEventResponse) => 
+        new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
       );
 
       // Fetch participation counts for each event
       const eventsWithCounts = await Promise.all(
-        sortedEvents.map(async (event: Event) => {
+        sortedEvents.map(async (event: ApiEventResponse) => {
           try {
             const countResponse = await fetch(`${BACKEND_URL}/api/participates/count/event/${event.id}`, {
               method: 'GET',
@@ -117,12 +117,12 @@ export function Dashboard() {
                          (event.description && event.description.toLowerCase().includes(searchQuery.toLowerCase()));
     
     const matchesTags = selectedTags.length === 0 || 
-                       selectedTags.some(tag => event.tag?.includes(tag));
+                       (event.tags && event.tags.length > 0 && selectedTags.some(tag => event.tags?.includes(tag)));
     
     return matchesSearch && matchesTags;
   }).sort((a, b) => {
     if (sortBy === 'date') {
-      return new Date(a.start_time).getTime() - new Date(b.start_time).getTime();
+      return new Date(a.startTime).getTime() - new Date(b.startTime).getTime();
     } else {
       return b.participationCount - a.participationCount;
     }
@@ -240,9 +240,9 @@ export function Dashboard() {
               {/* Event Content */}
               <div className="p-6">
                 {/* Tags */}
-                {event.tag && event.tag.length > 0 && (
+                {event.tags && event.tags.length > 0 && (
                   <div className="flex flex-wrap gap-1 mb-3">
-                    {event.tag.slice(0, 2).map((tag, index) => (
+                    {event.tags.slice(0, 2).map((tag, index) => (
                       <span
                         key={index}
                         className={`text-xs font-medium px-2 py-1 rounded-full ${TAG_COLORS[tag] || 'bg-gray-100 text-gray-800'}`}
@@ -250,9 +250,9 @@ export function Dashboard() {
                         {tag}
                       </span>
                     ))}
-                    {event.tag.length > 2 && (
+                    {event.tags.length > 2 && (
                       <span className="text-xs font-medium px-2 py-1 rounded-full bg-gray-100 text-gray-800">
-                        +{event.tag.length - 2} more
+                        +{event.tags.length - 2} more
                       </span>
                     )}
                   </div>
@@ -274,9 +274,9 @@ export function Dashboard() {
                 <div className="space-y-2 text-sm text-gray-500">
                   <div className="flex items-center space-x-2">
                     <CalendarIcon className="w-4 h-4" />
-                    <span>{format(parseISO(event.start_time), 'MMM d, yyyy')}</span>
+                    <span>{format(parseISO(event.startTime), 'MMM d, yyyy')}</span>
                     <Clock className="w-4 h-4 ml-2" />
-                    <span>{format(parseISO(event.start_time), 'h:mm a')}</span>
+                    <span>{format(parseISO(event.startTime), 'h:mm a')}</span>
                   </div>
                   <div className="flex items-center space-x-2">
                     <Users className="w-4 h-4" />
