@@ -11,8 +11,8 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 @Configuration
 public class CorsConfig {
 
-    @Value("${cors.allowed-origins}")
-    private String allowedOrigins;
+  @Value("${cors.allowed-origins}")
+  private String allowedOrigins;
 
   @Bean
   public CorsConfigurationSource corsConfigurationSource() {
@@ -26,18 +26,17 @@ public class CorsConfig {
             "http://127.0.0.1:*",
             "https://127.0.0.1:*",
             "http://summerbuild.pages.dev",
-            "https://summerbuild.pages.dev"
-        ));
-        
-        // Allow all HTTP methods
-        configuration.setAllowedMethods(Arrays.asList(
-            "GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"
-        ));
-        
-        // Allow common headers
-        configuration.setAllowedHeaders(Arrays.asList(
-            "Authorization", 
-            "Content-Type", 
+            "https://summerbuild.pages.dev"));
+
+    // Allow all HTTP methods
+    configuration.setAllowedMethods(
+        Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
+
+    // Allow common headers
+    configuration.setAllowedHeaders(
+        Arrays.asList(
+            "Authorization",
+            "Content-Type",
             "X-Requested-With",
             "Accept",
             "Origin",

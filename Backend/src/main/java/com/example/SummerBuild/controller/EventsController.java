@@ -76,7 +76,8 @@ public class EventsController {
       logger.info("inserting images for event into bucket: {}", eventUuid);
       String serverReply = fileLoaderService.uploadFile(files, eventUuid, hostUuid);
       if (serverReply == null || !serverReply.equals("Files uploaded successfully")) {
-        logger.error("File upload failed for event: {}. Server response: {}", eventUuid, serverReply);
+        logger.error(
+            "File upload failed for event: {}. Server response: {}", eventUuid, serverReply);
         logger.error("File upload failed: {}", serverReply != null ? serverReply : "Unknown error");
 
         // look at logs for more details cause i cant return a string here

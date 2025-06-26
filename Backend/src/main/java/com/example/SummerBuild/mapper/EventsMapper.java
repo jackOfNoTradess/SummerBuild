@@ -2,7 +2,6 @@ package com.example.SummerBuild.mapper;
 
 import com.example.SummerBuild.dto.EventsDto;
 import com.example.SummerBuild.model.Events;
-import java.util.UUID;
 import org.springframework.stereotype.Component;
 
 @Component

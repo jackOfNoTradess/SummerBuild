@@ -46,5 +46,7 @@ public class EventsDto extends BaseDto {
   @Size(max = 255, message = "Description must not exceed 255 characters")
   private String description;
 
+  @NotNull(message = "At least one tag is required")
+  @Size(min = 1, message = "At least one tag is required")
   private List<String> tags;
 }
