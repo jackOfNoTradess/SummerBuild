@@ -1,14 +1,14 @@
 name: "Stage 1: Setup"
 
-# Triggers
+# Triggers - DISABLED
 on:
-  push:
-    branches: ['*']
+  # push:
+  #   branches: ['*']
   # pull_request:
   #   # Trigger on PR to main
   #   branches: [main]
   # Add a manual "Run Workflow" button in Github CI
-  workflow_dispatch: 
+  # workflow_dispatch: 
   # Called by pipeline workflow
   workflow_call:
     inputs:
