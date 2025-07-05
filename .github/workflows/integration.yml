@@ -1,11 +1,11 @@
 name: "Stage 2: Integration"
 
 on:
-  push:
-    branches: ['*']
+  # push:
+  #   branches: ['*']
   # pull_request:
   #   branches: [main]
-  workflow_dispatch:
+  # workflow_dispatch:
   # Called by Stage 1 CI workflow completion
   workflow_call:
     inputs:
