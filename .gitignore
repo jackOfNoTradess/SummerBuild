@@ -87,6 +87,7 @@ build/
 .env.*
 !.env.example
 **/application.properties
+**/application-test.properties
 !**/application.properties.template
 **/env.properties
 **/application-test.properties
