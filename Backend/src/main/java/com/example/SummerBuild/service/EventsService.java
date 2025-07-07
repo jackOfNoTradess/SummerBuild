@@ -19,7 +19,11 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 public class EventsService {
   private final EventsRepository eventsRepository;
   private final EventsMapper eventsMapper;
+  private final DistributedLockService distributedLockService;
+  private final AtomicCapacityService atomicCapacityService;
   private static final Logger logger = LoggerFactory.getLogger(EventsService.class);
+
+  private static final String EVENT_LOCK_PREFIX = "event:lock:";
 
   @ResponseStatus(HttpStatus.NOT_FOUND)
   public static class ResourceNotFoundException extends RuntimeException {
@@ -45,90 +49,169 @@ public class EventsService {
   @Transactional(readOnly = true)
   public List<EventsDto> findAll() {
     logger.info("Fetching all events");
-    return eventsRepository.findAll().stream().map(eventsMapper::toDto).toList();
+    List<Events> events = eventsRepository.findAll();
+    return events.stream()
+        .map(event -> {
+          EventsDto dto = eventsMapper.toDto(event);
+          // Get real-time capacity from Redis
+          long currentCapacity = atomicCapacityService.getCurrentCapacity(event.getId());
+          dto.setCapacity((int) currentCapacity);
+          return dto;
+        })
+        .toList();
   }
 
   @Transactional(readOnly = true)
   public EventsDto findById(UUID id) {
     logger.info("Fetching event with id: {}", id);
-    return eventsRepository
+    Events event = eventsRepository
         .findById(id)
-        .map(eventsMapper::toDto)
         .orElseThrow(() -> new ResourceNotFoundException("Event not found with id: " + id));
+
+    EventsDto dto = eventsMapper.toDto(event);
+    // Get real-time capacity from Redis
+    long currentCapacity = atomicCapacityService.getCurrentCapacity(id);
+    dto.setCapacity((int) currentCapacity);
+    return dto;
   }
 
   @Transactional
   public EventsDto create(EventsDto eventsDto, UUID hostUuid) {
     logger.info("Creating new event with title: {}", eventsDto.getTitle());
 
-    // Validate input
-    validateEventData(eventsDto);
+    return distributedLockService.executeWithLock(
+        EVENT_LOCK_PREFIX + "create:" + hostUuid,
+        () -> {
+          // Validate input
+          validateEventData(eventsDto);
 
-    // Set the host UUID (from authenticated user)
-    eventsDto.setHostUuid(hostUuid);
+          // Set the host UUID (from authenticated user)
+          eventsDto.setHostUuid(hostUuid);
 
-    // Convert to entity and save
-    Events event = eventsMapper.toEntity(eventsDto);
+          // Convert to entity and save
+          Events event = eventsMapper.toEntity(eventsDto);
+          Events savedEvent = eventsRepository.save(event);
 
-    // DEBUG: Check entity before save
-    logger.info("Entity before save - ID: {}, Host UUID: {}", event.getId(), event.getHostId());
+          // Initialize capacity in Redis
+          atomicCapacityService.initializeCapacity(savedEvent.getId(), savedEvent.getCapacity());
 
-    Events savedEvent = eventsRepository.save(event);
-
-    // DEBUG: Check entity after save
-    logger.info(
-        "Entity after save - ID: {}, Host UUID: {}", savedEvent.getId(), savedEvent.getHostId());
-
-    EventsDto resultDto = eventsMapper.toDto(savedEvent);
-
-    // DEBUG: Check DTO after mapping
-    logger.info(
-        "DTO after mapping - ID: {}, Host UUID: {}", resultDto.getId(), resultDto.getHostUuid());
-
-    logger.info("Successfully created event with id: {}", savedEvent.getId());
-    return resultDto;
+          EventsDto resultDto = eventsMapper.toDto(savedEvent);
+          logger.info("Successfully created event with id: {}", savedEvent.getId());
+          return resultDto;
+        });
   }
 
   @Transactional
   public EventsDto update(UUID id, EventsDto eventsDto) {
     logger.info("Updating event with id: {}", id);
 
-    // Validate input
-    validateEventData(eventsDto);
+    return distributedLockService.executeWithLock(
+        EVENT_LOCK_PREFIX + id,
+        () -> {
+          // Validate input
+          validateEventData(eventsDto);
 
-    Events existingEvent =
-        eventsRepository
-            .findById(id)
-            .orElseThrow(() -> new ResourceNotFoundException("Event not found with id: " + id));
+          Events existingEvent = eventsRepository
+              .findById(id)
+              .orElseThrow(() -> new ResourceNotFoundException("Event not found with id: " + id));
 
-    // Update the existing entity with new data
-    eventsMapper.updateEntityFromDto(eventsDto, existingEvent);
+          // Update the existing entity with new data
+          eventsMapper.updateEntityFromDto(eventsDto, existingEvent);
+          Events updatedEvent = eventsRepository.save(existingEvent);
 
-    Events updatedEvent = eventsRepository.save(existingEvent);
+          // Update capacity in Redis if it changed
+          if (eventsDto.getCapacity() != null) {
+            atomicCapacityService.updateCapacity(id, eventsDto.getCapacity());
+          }
 
-    logger.info("Successfully updated event with id: {}", id);
-    return eventsMapper.toDto(updatedEvent);
+          EventsDto resultDto = eventsMapper.toDto(updatedEvent);
+          logger.info("Successfully updated event with id: {}", id);
+          return resultDto;
+        });
   }
 
   @Transactional
   public void delete(UUID id) {
     logger.info("Deleting event with id: {}", id);
 
-    if (!eventsRepository.existsById(id)) {
-      throw new ResourceNotFoundException("Event not found with id: " + id);
-    }
+    distributedLockService.executeWithLock(
+        EVENT_LOCK_PREFIX + id,
+        () -> {
+          if (!eventsRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Event not found with id: " + id);
+          }
 
-    eventsRepository.deleteById(id);
-    logger.info("Successfully deleted event with id: {}", id);
+          eventsRepository.deleteById(id);
+          // Clean up capacity from Redis
+          atomicCapacityService.deleteCapacity(id);
+
+          logger.info("Successfully deleted event with id: {}", id);
+          return null;
+        });
   }
 
   @Transactional(readOnly = true)
   public List<EventsDto> findByHostUuid(UUID hostUuid) {
     logger.info("Fetching events for host: {}", hostUuid);
-    return eventsRepository.findAll().stream()
+    List<Events> events = eventsRepository.findAll().stream()
         .filter(event -> event.getHostId().equals(hostUuid))
-        .map(eventsMapper::toDto)
         .toList();
+
+    return events.stream()
+        .map(event -> {
+          EventsDto dto = eventsMapper.toDto(event);
+          // Get real-time capacity from Redis
+          long currentCapacity = atomicCapacityService.getCurrentCapacity(event.getId());
+          dto.setCapacity((int) currentCapacity);
+          return dto;
+        })
+        .toList();
+  }
+
+  /**
+   * handle event registration (decrement capacity)
+   */
+  public boolean registerForEvent(UUID eventId) {
+    logger.info("Attempting to register for event: {}", eventId);
+
+    return distributedLockService.executeWithLock(
+        EVENT_LOCK_PREFIX + eventId,
+        () -> {
+          // Verify event exists
+          if (!eventsRepository.existsById(eventId)) {
+            throw new ResourceNotFoundException("Event not found with id: " + eventId);
+          }
+
+          // Atomically decrement capacity
+          boolean success = atomicCapacityService.decrementCapacity(eventId);
+          if (success) {
+            logger.info("Successfully registered for event: {}", eventId);
+          } else {
+            logger.warn("Failed to register for event: {} - no capacity available", eventId);
+          }
+          return success;
+        });
+  }
+
+  /**
+   * handle event unregistration (increment capacity)
+   */
+  public void unregisterFromEvent(UUID eventId) {
+    logger.info("Unregistering from event: {}", eventId);
+
+    distributedLockService.executeWithLock(
+        EVENT_LOCK_PREFIX + eventId,
+        () -> {
+          // Verify event exists
+          if (!eventsRepository.existsById(eventId)) {
+            throw new ResourceNotFoundException("Event not found with id: " + eventId);
+          }
+
+          // Atomically increment capacity
+          atomicCapacityService.incrementCapacity(eventId);
+          logger.info("Successfully unregistered from event: {}", eventId);
+          return null;
+        });
   }
 
   private void validateEventData(EventsDto eventsDto) {
