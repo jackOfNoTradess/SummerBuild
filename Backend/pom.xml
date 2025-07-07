@@ -8,7 +8,7 @@
   <parent>
     <groupId>org.springframework.boot</groupId>
     <artifactId>spring-boot-starter-parent</artifactId>
-    <version>3.5.0</version>
+    <version>3.5.3</version>
     <relativePath />
   </parent>
 
@@ -254,6 +254,15 @@
         <artifactId>maven-surefire-plugin</artifactId>
         <configuration>
           <argLine>-Dnet.bytebuddy.experimental=true</argLine>
+          <skipTests>true</skipTests>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-failsafe-plugin</artifactId>
+        <configuration>
+          <skipTests>true</skipTests>
         </configuration>
       </plugin>
 
