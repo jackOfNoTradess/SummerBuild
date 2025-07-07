@@ -51,22 +51,24 @@ public class EventsService {
     logger.info("Fetching all events");
     List<Events> events = eventsRepository.findAll();
     return events.stream()
-        .map(event -> {
-          EventsDto dto = eventsMapper.toDto(event);
-          // Get real-time capacity from Redis
-          long currentCapacity = atomicCapacityService.getCurrentCapacity(event.getId());
-          dto.setCapacity((int) currentCapacity);
-          return dto;
-        })
+        .map(
+            event -> {
+              EventsDto dto = eventsMapper.toDto(event);
+              // Get real-time capacity from Redis
+              long currentCapacity = atomicCapacityService.getCurrentCapacity(event.getId());
+              dto.setCapacity((int) currentCapacity);
+              return dto;
+            })
         .toList();
   }
 
   @Transactional(readOnly = true)
   public EventsDto findById(UUID id) {
     logger.info("Fetching event with id: {}", id);
-    Events event = eventsRepository
-        .findById(id)
-        .orElseThrow(() -> new ResourceNotFoundException("Event not found with id: " + id));
+    Events event =
+        eventsRepository
+            .findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Event not found with id: " + id));
 
     EventsDto dto = eventsMapper.toDto(event);
     // Get real-time capacity from Redis
@@ -111,9 +113,11 @@ public class EventsService {
           // Validate input
           validateEventData(eventsDto);
 
-          Events existingEvent = eventsRepository
-              .findById(id)
-              .orElseThrow(() -> new ResourceNotFoundException("Event not found with id: " + id));
+          Events existingEvent =
+              eventsRepository
+                  .findById(id)
+                  .orElseThrow(
+                      () -> new ResourceNotFoundException("Event not found with id: " + id));
 
           // Update the existing entity with new data
           eventsMapper.updateEntityFromDto(eventsDto, existingEvent);
@@ -153,24 +157,24 @@ public class EventsService {
   @Transactional(readOnly = true)
   public List<EventsDto> findByHostUuid(UUID hostUuid) {
     logger.info("Fetching events for host: {}", hostUuid);
-    List<Events> events = eventsRepository.findAll().stream()
-        .filter(event -> event.getHostId().equals(hostUuid))
-        .toList();
+    List<Events> events =
+        eventsRepository.findAll().stream()
+            .filter(event -> event.getHostId().equals(hostUuid))
+            .toList();
 
     return events.stream()
-        .map(event -> {
-          EventsDto dto = eventsMapper.toDto(event);
-          // Get real-time capacity from Redis
-          long currentCapacity = atomicCapacityService.getCurrentCapacity(event.getId());
-          dto.setCapacity((int) currentCapacity);
-          return dto;
-        })
+        .map(
+            event -> {
+              EventsDto dto = eventsMapper.toDto(event);
+              // Get real-time capacity from Redis
+              long currentCapacity = atomicCapacityService.getCurrentCapacity(event.getId());
+              dto.setCapacity((int) currentCapacity);
+              return dto;
+            })
         .toList();
   }
 
-  /**
-   * handle event registration (decrement capacity)
-   */
+  /** handle event registration (decrement capacity) */
   public boolean registerForEvent(UUID eventId) {
     logger.info("Attempting to register for event: {}", eventId);
 
@@ -193,9 +197,7 @@ public class EventsService {
         });
   }
 
-  /**
-   * handle event unregistration (increment capacity)
-   */
+  /** handle event unregistration (increment capacity) */
   public void unregisterFromEvent(UUID eventId) {
     logger.info("Unregistering from event: {}", eventId);
 
