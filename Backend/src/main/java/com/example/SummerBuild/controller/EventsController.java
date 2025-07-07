@@ -44,15 +44,11 @@ public class EventsController {
     return ResponseEntity.ok(event);
   }
 
-  @PostMapping(consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
-  @RequestBody(
-      content =
-          @Content(
-              mediaType = MediaType.MULTIPART_FORM_DATA_VALUE,
-              encoding = {
-                @Encoding(name = "event", contentType = MediaType.APPLICATION_JSON_VALUE),
-                @Encoding(name = "files", contentType = MediaType.APPLICATION_OCTET_STREAM_VALUE)
-              }))
+  @PostMapping(consumes = { MediaType.MULTIPART_FORM_DATA_VALUE })
+  @RequestBody(content = @Content(mediaType = MediaType.MULTIPART_FORM_DATA_VALUE, encoding = {
+      @Encoding(name = "event", contentType = MediaType.APPLICATION_JSON_VALUE),
+      @Encoding(name = "files", contentType = MediaType.APPLICATION_OCTET_STREAM_VALUE)
+  }))
   public ResponseEntity<EventsDto> createEvent(
       @RequestPart(value = "files") List<MultipartFile> files,
       @Valid @RequestPart(value = "event") EventsDto eventsDto,
@@ -84,17 +80,11 @@ public class EventsController {
     return ResponseEntity.status(HttpStatus.CREATED).body(createdEvent);
   }
 
-  @PutMapping(
-      value = "/{id}",
-      consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
-  @RequestBody(
-      content =
-          @Content(
-              mediaType = MediaType.MULTIPART_FORM_DATA_VALUE,
-              encoding = {
-                @Encoding(name = "event", contentType = MediaType.APPLICATION_JSON_VALUE),
-                @Encoding(name = "files", contentType = MediaType.APPLICATION_OCTET_STREAM_VALUE)
-              }))
+  @PutMapping(value = "/{id}", consumes = { MediaType.MULTIPART_FORM_DATA_VALUE })
+  @RequestBody(content = @Content(mediaType = MediaType.MULTIPART_FORM_DATA_VALUE, encoding = {
+      @Encoding(name = "event", contentType = MediaType.APPLICATION_JSON_VALUE),
+      @Encoding(name = "files", contentType = MediaType.APPLICATION_OCTET_STREAM_VALUE)
+  }))
   public ResponseEntity<EventsDto> updateEvent(
       @RequestPart(value = "files", required = false) List<MultipartFile> files,
       @PathVariable UUID id,
@@ -143,6 +133,75 @@ public class EventsController {
     return ResponseEntity.ok(events);
   }
 
+  /**
+   * Register for an event (decrements available capacity)
+   */
+  @PostMapping("/{eventId}/register")
+  public ResponseEntity<String> registerForEvent(
+      @PathVariable UUID eventId,
+      Authentication authentication) {
+    logger.info("POST /api/events/{}/register - User {} registering for event",
+        eventId, authentication.getName());
+
+    try {
+      boolean success = eventsService.registerForEvent(eventId);
+      if (success) {
+        return ResponseEntity.ok("Successfully registered for event");
+      } else {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+            .body("Event is full - no available capacity");
+      }
+    } catch (EventsService.ResourceNotFoundException e) {
+      return ResponseEntity.status(HttpStatus.NOT_FOUND)
+          .body("Event not found");
+    } catch (Exception e) {
+      logger.error("Error registering for event {}: {}", eventId, e.getMessage(), e);
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+          .body("Failed to register for event");
+    }
+  }
+
+  /**
+   * Unregister from an event (increments available capacity)
+   */
+  @DeleteMapping("/{eventId}/register")
+  public ResponseEntity<String> unregisterFromEvent(
+      @PathVariable UUID eventId,
+      Authentication authentication) {
+    logger.info("DELETE /api/events/{}/register - User {} unregistering from event",
+        eventId, authentication.getName());
+
+    try {
+      eventsService.unregisterFromEvent(eventId);
+      return ResponseEntity.ok("Successfully unregistered from event");
+    } catch (EventsService.ResourceNotFoundException e) {
+      return ResponseEntity.status(HttpStatus.NOT_FOUND)
+          .body("Event not found");
+    } catch (Exception e) {
+      logger.error("Error unregistering from event {}: {}", eventId, e.getMessage(), e);
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+          .body("Failed to unregister from event");
+    }
+  }
+
+  /**
+   * Get current available capacity for an event
+   */
+  @GetMapping("/{eventId}/capacity")
+  public ResponseEntity<Integer> getEventCapacity(@PathVariable UUID eventId) {
+    logger.info("GET /api/events/{}/capacity - Fetching current capacity", eventId);
+
+    try {
+      EventsDto event = eventsService.findById(eventId);
+      return ResponseEntity.ok(event.getCapacity());
+    } catch (EventsService.ResourceNotFoundException e) {
+      return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+    } catch (Exception e) {
+      logger.error("Error fetching capacity for event {}: {}", eventId, e.getMessage(), e);
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+    }
+  }
+
   @GetMapping("/{eventId}/files/{fileName}")
   public ResponseEntity<String> getEventFile(
       @PathVariable UUID eventId, @PathVariable String fileName) {
@@ -152,12 +211,10 @@ public class EventsController {
     if (filePath != null) {
       return ResponseEntity.ok(filePath);
     } else {
-      logger.warn("File not found: {} for event: {}", fileName, eventId);
       return ResponseEntity.notFound().build();
     }
   }
 
-  // Done le
   @DeleteMapping("/{eventId}/files/{fileName}")
   public ResponseEntity<Void> deleteEventFile(
       @PathVariable UUID eventId, @PathVariable String fileName, Authentication authentication) {
@@ -174,11 +231,9 @@ public class EventsController {
 
     boolean deleted = fileLoaderService.deleteFile(eventId.toString(), fileName);
     if (deleted) {
-      logger.info("File deleted successfully: {}", fileName);
       return ResponseEntity.noContent().build();
     } else {
-      logger.error("Failed to delete file: {}", fileName);
-      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+      return ResponseEntity.notFound().build();
     }
   }
 }
