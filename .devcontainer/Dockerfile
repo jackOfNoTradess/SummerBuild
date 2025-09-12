@@ -9,6 +9,7 @@ RUN sudo apt-get update && apt-get install -y \
     python3 \
     python3-pip \
     software-properties-common \
+    ripgrep \
     && pip3 install --break-system-packages pre-commit \
     && rm -rf /var/lib/apt/lists/*
 
